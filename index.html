@@ -1,57 +1,248 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Biking Brothers</title>
-<link rel="preconnect" href="https://unpkg.com">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 <style>
-:root{--bg:#07090b;--panel:#101419;--panel2:#151a20;--line:#252c34;--text:#f4f6f8;--muted:#98a2ad;--accent:#f5c400;--danger:#ff4d4d;--green:#35d07f;}
-*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}button,input,select{font:inherit}button{cursor:pointer;border:0}.app{height:100%;display:flex;flex-direction:column}.topbar{height:64px;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;background:#080a0c;border-bottom:1px solid var(--line);z-index:20}.brand{display:flex;align-items:center;gap:10px}.logo{width:40px;height:40px;border-radius:12px;background:var(--accent);color:#08090a;display:grid;place-items:center;font-weight:900;font-size:20px}.brand b{display:block;font-size:17px}.brand span{display:block;font-size:11px;color:var(--muted)}.status{font-size:12px;color:var(--green);display:flex;align-items:center;gap:6px}.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green)}main{flex:1;min-height:0;position:relative;overflow:hidden}.screen{display:none;height:100%;overflow:auto}.screen.active{display:block}.home{padding:18px 16px 90px;background:radial-gradient(circle at 80% 0,#20251b 0,transparent 32%),var(--bg)}.hero{background:linear-gradient(135deg,#171b20,#0e1115);border:1px solid var(--line);border-radius:22px;padding:20px;margin-bottom:16px}.hero h1{font-size:27px;line-height:1.1;margin:0 0 8px}.hero p{color:var(--muted);margin:0 0 18px;font-size:14px}.primary{background:var(--accent);color:#111;padding:14px 18px;border-radius:14px;font-weight:800;width:100%}.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line);padding:12px 16px;border-radius:13px;font-weight:700}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}.card small{color:var(--muted)}.stat{font-size:25px;font-weight:850;margin-top:5px}.section-title{font-size:17px;font-weight:800;margin:20px 2px 10px}.ride-card{display:flex;justify-content:space-between;align-items:center;gap:10px}.ride-card .left{min-width:0}.ride-card b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ride-card p{color:var(--muted);font-size:12px;margin:5px 0 0}.pill{display:inline-flex;padding:5px 8px;border-radius:999px;background:#20262d;color:#d7dde3;font-size:11px}.bottom{position:absolute;left:0;right:0;bottom:0;height:74px;background:rgba(9,11,14,.96);border-top:1px solid var(--line);display:flex;z-index:30;padding-bottom:env(safe-area-inset-bottom)}.navbtn{flex:1;background:none;color:#7e8994;font-size:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}.navbtn.active{color:var(--accent)}.navicon{font-size:21px}.map-wrap{height:100%;position:relative}.map{height:100%;background:#1b1e21}.map-overlay{position:absolute;top:12px;left:12px;right:12px;z-index:500;pointer-events:none}.ride-status{background:rgba(10,12,15,.94);border:1px solid #313942;border-radius:17px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;pointer-events:auto;box-shadow:0 8px 30px rgba(0,0,0,.3)}.ride-status small{color:var(--muted)}.ride-status b{font-size:14px}.map-controls{position:absolute;right:14px;bottom:105px;z-index:600;display:flex;flex-direction:column;gap:9px}.round{width:48px;height:48px;border-radius:50%;background:#fff;color:#15191d;box-shadow:0 4px 15px #0007;font-weight:800}.live-actions{position:absolute;left:12px;right:12px;bottom:88px;z-index:600;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.action{background:rgba(13,16,20,.95);color:#fff;border:1px solid #3a424b;border-radius:13px;padding:12px 8px;font-weight:800}.action.sos{border-color:#7e2d2d;color:#ff7373}.modal{position:fixed;inset:0;background:#0009;z-index:1000;display:none;align-items:flex-end}.modal.open{display:flex}.sheet{width:100%;max-height:90%;background:#0f1317;border-radius:24px 24px 0 0;border:1px solid var(--line);padding:20px;overflow:auto}.sheet h2{margin:0 0 5px}.sheet p{color:var(--muted);font-size:13px}.field{margin:13px 0}.field label{display:block;color:#b7c0c8;font-size:12px;margin-bottom:6px}.field input,.field select{width:100%;background:#171c21;color:#fff;border:1px solid #303842;border-radius:12px;padding:12px;outline:none}.row{display:flex;gap:9px}.row>*{flex:1}.sheet .primary{margin-top:8px}.profile{padding:18px 16px 90px}.profile-head{display:flex;align-items:center;gap:15px;padding:16px 0}.avatar{width:68px;height:68px;border-radius:50%;background:#252c34;display:grid;place-items:center;font-size:26px;font-weight:900;color:var(--accent)}.profile h2{margin:0}.profile p{margin:4px 0;color:var(--muted)}.empty{padding:30px 15px;text-align:center;color:var(--muted);border:1px dashed #333b44;border-radius:16px}.leaflet-control-zoom a{background:#fff!important;color:#111!important}.leaflet-control-attribution{font-size:9px!important}.bike-marker{width:34px;height:34px;border-radius:50%;background:#101419;border:3px solid var(--accent);display:grid;place-items:center;font-size:17px;box-shadow:0 3px 12px #0008}.me-marker{border-color:#fff}.toast{position:fixed;left:16px;right:16px;bottom:88px;z-index:1200;background:#151a20;border:1px solid #38414a;padding:12px 14px;border-radius:13px;display:none}.toast.show{display:block}
+*{box-sizing:border-box}body{margin:0;background:#070809;color:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{padding:24px 20px 16px;border-bottom:1px solid #25282c;display:flex;align-items:center;gap:14px}
+.logo{width:54px;height:54px;border-radius:15px;background:#ffd000;color:#111;display:grid;place-items:center;font-weight:900;font-size:25px}
+h1{margin:0;font-size:23px}.tag{color:#9ba0a8;margin-top:4px;font-size:14px}.online{margin-left:auto;color:#43e18a}
+main{padding:18px;max-width:760px;margin:auto}.card{background:#111419;border:1px solid #2b3037;border-radius:24px;padding:20px;margin-bottom:16px}
+.hero h2{font-size:34px;line-height:1.08;margin:0 0 10px}.hero p{font-size:18px;color:#a8adb5;line-height:1.35}
+button{border:0;border-radius:16px;padding:14px 16px;font-size:17px;font-weight:750;cursor:pointer}.primary{background:#ffd000;color:#111;width:100%}
+.secondary{background:#20242a;color:#fff;width:100%;margin-top:10px}.danger{background:#5b1518;color:#fff}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.tile{background:#111419;border:1px solid #2b3037;color:#fff;width:100%}
+.small{color:#9ba0a8}.value{font-size:30px;font-weight:800;margin-top:7px}
+input{width:100%;padding:13px;border-radius:12px;border:1px solid #383d44;background:#08090b;color:#fff;margin:7px 0 11px;font-size:16px}
+.status{padding:8px 0;color:#43e18a;word-break:break-word}.muted{color:#9ba0a8}.row{display:flex;gap:10px;align-items:center}.row button{flex:1}
+#map{height:260px;border-radius:18px;background:#0d1116;border:1px solid #30353c;display:grid;place-items:center;color:#9ba0a8;text-align:center;padding:20px}
+.hidden{display:none}.ridecode{font-size:28px;font-weight:900;letter-spacing:3px;text-align:center;padding:10px}
+.member{padding:10px 0;border-bottom:1px solid #292d33}.member:last-child{border-bottom:0}
 </style>
 </head>
 <body>
-<div class="app">
-<header class="topbar"><div class="brand"><div class="logo">BB</div><div><b>Biking Brothers</b><span>Connected by Roads. United by Brotherhood.</span></div></div><div class="status"><i class="dot"></i><span id="onlineText">Online</span></div></header>
+<header>
+<div class="logo">BB</div>
+<div><h1>Biking Brothers</h1><div class="tag">Connected by Roads. United by Brotherhood.</div></div>
+<div class="online" id="online">● Cloud</div>
+</header>
+
 <main>
-<section id="home" class="screen active home">
-  <div class="hero"><h1>Ride together.<br>Never get left behind.</h1><p>Plan rides, see your brothers live and stay connected on every road.</p><button class="primary" onclick="openCreate()">🏍️ Start a Ride</button></div>
-  <div class="grid"><div class="card"><small>Distance ridden</small><div class="stat" id="distanceStat">0 km</div></div><div class="card"><small>States conquered</small><div class="stat" id="statesStat">0</div></div></div>
-  <div class="section-title">Quick actions</div><div class="grid"><button class="card secondary" onclick="openJoin()">🔗 Join Ride</button><button class="card secondary" onclick="showScreen('brothers')">👥 Brothers</button><button class="card secondary" onclick="showScreen('rides')">🗺️ Public Rides</button><button class="card secondary" onclick="showToast('SOS will be connected to emergency contacts in the next phase.')">🆘 SOS</button></div>
-  <div class="section-title">Recent rides</div><div id="recentRides"></div>
+<section class="card hero">
+<h2>Ride together.<br>Never get left behind.</h2>
+<p>Cloud-connected rides with accounts, ride codes and realtime rider locations.</p>
+<button class="primary" onclick="openRide()">🏍️ Start a Ride</button>
 </section>
-<section id="rides" class="screen home"><div class="section-title" style="margin-top:0">Rides</div><button class="primary" onclick="openCreate()">＋ Create Ride</button><div class="section-title">Public rides</div><div id="publicRides"></div></section>
-<section id="brothers" class="screen home"><div class="section-title" style="margin-top:0">Brothers</div><div class="card"><b>Find riders around you</b><p style="color:var(--muted);font-size:13px">Search, send requests and build your riding group.</p><button class="secondary" onclick="showToast('Brother discovery is ready for backend connection.')">Find Brothers</button></div><div class="section-title">Your brotherhood</div><div class="empty">No brothers added yet.<br>Invite your riding friends to BB.</div></section>
-<section id="profile" class="screen profile"><div class="profile-head"><div class="avatar">R</div><div><h2>Rider</h2><p>Biking Brothers member</p></div></div><div class="grid"><div class="card"><small>Total rides</small><div class="stat" id="ridesStat">0</div></div><div class="card"><small>Distance</small><div class="stat" id="profileDistance">0 km</div></div></div><div class="section-title">States Conquered</div><div class="card"><b>🇮🇳 India</b><p style="color:var(--muted);font-size:13px">Verified states will turn green from qualifying GPS ride history.</p><div style="font-size:34px;margin-top:12px">0 / 36</div></div></section>
-<section id="live" class="screen"><div class="map-wrap"><div id="map" class="map"></div><div class="map-overlay"><div class="ride-status"><div><small id="rideNameTop">Live Ride</small><b id="leaderText">Waiting for riders</b></div><div style="text-align:right"><small>Riders</small><b id="riderCount">1</b></div></div></div><div class="map-controls"><button class="round" onclick="locateMe()">◎</button><button class="round" onclick="map.setZoom(map.getZoom()+1)">＋</button><button class="round" onclick="map.setZoom(map.getZoom()-1)">−</button></div><div class="live-actions"><button class="action" onclick="requestBreak()">☕ Break</button><button class="action" onclick="showToast('Help request sent to ride members.')">🆘 Help</button><button class="action sos" onclick="confirmSOS()">SOS</button></div></div></section>
-</main>
-<nav class="bottom"><button class="navbtn active" data-screen="home" onclick="showScreen('home')"><span class="navicon">⌂</span>Home</button><button class="navbtn" data-screen="rides" onclick="showScreen('rides')"><span class="navicon">◈</span>Rides</button><button class="navbtn" data-screen="live" onclick="startRideQuick()"><span class="navicon">🏍</span>Start Ride</button><button class="navbtn" data-screen="brothers" onclick="showScreen('brothers')"><span class="navicon">♧</span>Brothers</button><button class="navbtn" data-screen="profile" onclick="showScreen('profile')"><span class="navicon">◉</span>Profile</button></nav>
+
+<section class="card">
+<h3>☁️ Supabase Cloud</h3>
+<div id="cloudStatus" class="status">Connecting…</div>
+<div id="userBox" class="hidden">
+<div class="small">Signed in as</div>
+<div id="userEmail"></div>
+<button class="secondary" onclick="signOut()">Sign out</button>
 </div>
-<div id="modal" class="modal"><div class="sheet"><h2 id="modalTitle">Create Ride</h2><p id="modalSub">Set up your next ride.</p><div id="createForm"><div class="field"><label>Ride name</label><input id="rideName" placeholder="e.g. Nandi Sunrise Ride"></div><div class="field"><label>Ride type</label><select id="rideType"><option>Touring</option><option>Breakfast</option><option>Off-road</option><option>Group</option></select></div><div class="field"><label>Destination</label><input id="destination" placeholder="e.g. Nandi Hills"></div><div class="row"><div class="field"><label>Visibility</label><select id="visibility"><option>Public</option><option>Private</option></select></div><div class="field"><label>Max riders</label><input id="maxRiders" type="number" value="10" min="2" max="100"></div></div><button class="primary" onclick="createRide()">Create & Start Ride</button><button class="secondary" style="width:100%;margin-top:9px" onclick="closeModal()">Cancel</button></div><div id="joinForm" style="display:none"><div class="field"><label>Ride code</label><input id="joinCode" placeholder="e.g. BB-7K2P"></div><button class="primary" onclick="joinRide()">Join Ride</button><button class="secondary" style="width:100%;margin-top:9px" onclick="closeModal()">Cancel</button></div></div></div>
-<div id="toast" class="toast"></div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script>
-const KEY='bb_mvp_v1';let data=JSON.parse(localStorage.getItem(KEY)||'{"rides":[],"distance":0,"states":0}');let map=null,meMarker=null,accuracyCircle=null,watchId=null,currentRide=null;const defaultCenter=[12.9716,77.5946];
-function save(){localStorage.setItem(KEY,JSON.stringify(data));updateStats();renderRides()}
-function updateStats(){document.querySelector('#distanceStat').textContent=Math.round(data.distance)+' km';document.querySelector('#profileDistance').textContent=Math.round(data.distance)+' km';document.querySelector('#statesStat').textContent=data.states||0;document.querySelector('#ridesStat').textContent=data.rides.length}
-function showScreen(id){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.navbtn').forEach(x=>x.classList.toggle('active',x.dataset.screen===id));if(id==='live')setTimeout(initMap,50);}
-function openCreate(){document.getElementById('modalTitle').textContent='Create Ride';document.getElementById('modalSub').textContent='Create a ride and start live tracking.';document.getElementById('createForm').style.display='block';document.getElementById('joinForm').style.display='none';document.getElementById('modal').classList.add('open')}
-function openJoin(){document.getElementById('modalTitle').textContent='Join Ride';document.getElementById('modalSub').textContent='Enter the ride code shared by your brother.';document.getElementById('createForm').style.display='none';document.getElementById('joinForm').style.display='block';document.getElementById('modal').classList.add('open')}
-function closeModal(){document.getElementById('modal').classList.remove('open')}
-function code(){return 'BB-'+Math.random().toString(36).slice(2,6).toUpperCase()}
-function createRide(){let name=document.getElementById('rideName').value.trim()||'Biking Brothers Ride';let ride={id:Date.now(),name,type:document.getElementById('rideType').value,destination:document.getElementById('destination').value.trim()||'Bengaluru',visibility:document.getElementById('visibility').value,max:+document.getElementById('maxRiders').value||10,code:code(),date:new Date().toLocaleString(),riders:1};data.rides.unshift(ride);currentRide=ride;save();closeModal();showScreen('live');document.getElementById('rideNameTop').textContent=name;document.getElementById('leaderText').textContent='You are the ride leader';document.getElementById('riderCount').textContent='1';showToast('Ride created • Code: '+ride.code);startLocation()}
-function joinRide(){let c=document.getElementById('joinCode').value.trim().toUpperCase();let ride=data.rides.find(r=>r.code===c);if(!ride){showToast('Ride code not found in this demo.');return}currentRide=ride;ride.riders=(ride.riders||1)+1;save();closeModal();showScreen('live');document.getElementById('rideNameTop').textContent=ride.name;document.getElementById('leaderText').textContent='Connected to ride';document.getElementById('riderCount').textContent=ride.riders;startLocation()}
-function startRideQuick(){if(data.rides.length){currentRide=data.rides[0];showScreen('live');document.getElementById('rideNameTop').textContent=currentRide.name;document.getElementById('leaderText').textContent='Live ride';document.getElementById('riderCount').textContent=currentRide.riders||1;startLocation()}else openCreate()}
-function initMap(){if(map)return;map=L.map('map',{zoomControl:false}).setView(defaultCenter,12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);setTimeout(()=>map.invalidateSize(),100)}
-function locateMe(){initMap();if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>updatePosition(p),()=>showToast('Location permission was not granted.'));else showToast('Location is not supported on this device.')}
-function startLocation(){initMap();locateMe();if(navigator.geolocation&&!watchId)watchId=navigator.geolocation.watchPosition(updatePosition,()=>{}, {enableHighAccuracy:true,maximumAge:3000,timeout:10000})}
-function updatePosition(pos){let lat=pos.coords.latitude,lng=pos.coords.longitude,acc=pos.coords.accuracy||30;let ll=[lat,lng];if(!meMarker){meMarker=L.marker(ll,{icon:L.divIcon({className:'',html:'<div class="bike-marker me-marker">🏍</div>',iconSize:[34,34],iconAnchor:[17,17]})}).addTo(map)}else meMarker.setLatLng(ll);if(!accuracyCircle)accuracyCircle=L.circle(ll,{radius:acc,weight:1,fillOpacity:.08}).addTo(map);else accuracyCircle.setLatLng(ll).setRadius(acc);map.setView(ll,15);document.getElementById('onlineText').textContent='Live GPS'}
-function requestBreak(){showToast('Break request sent to the ride leader.')}function confirmSOS(){if(confirm('Send SOS to your ride members?'))showToast('SOS alert triggered. Connect emergency contacts in Phase 2.')}function showToast(t){let el=document.getElementById('toast');el.textContent=t;el.classList.add('show');clearTimeout(window.tt);window.tt=setTimeout(()=>el.classList.remove('show'),3200)}
-function renderRides(){let recent=document.getElementById('recentRides'),pub=document.getElementById('publicRides');if(!data.rides.length){recent.innerHTML='<div class="empty">No rides yet. Create your first Biking Brothers ride.</div>';pub.innerHTML='<div class="empty">No public rides yet.</div>';return}let html=data.rides.slice(0,5).map(r=>`<div class="card ride-card" style="margin-bottom:9px"><div class="left"><b>${escapeHtml(r.name)}</b><p>${escapeHtml(r.type)} • ${escapeHtml(r.destination)} • ${r.riders||1} rider(s)</p></div><span class="pill">${r.code}</span></div>`).join('');recent.innerHTML=html;pub.innerHTML=data.rides.filter(r=>r.visibility==='Public').map(r=>`<div class="card ride-card" style="margin-bottom:9px"><div class="left"><b>${escapeHtml(r.name)}</b><p>${escapeHtml(r.type)} • ${escapeHtml(r.destination)} • ${r.riders||1}/${r.max}</p></div><button class="secondary" onclick="joinByCode('${r.code}')">Join</button></div>`).join('')||'<div class="empty">No public rides yet.</div>'}
-function joinByCode(c){document.getElementById('joinCode').value=c;openJoin()}
-function escapeHtml(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-updateStats();renderRides();window.addEventListener('online',()=>document.getElementById('onlineText').textContent='Online');window.addEventListener('offline',()=>document.getElementById('onlineText').textContent='Offline');
+</section>
+
+<section class="card" id="authCard">
+<h3>👤 Rider account</h3>
+<label>Email</label><input id="email" type="email" placeholder="you@example.com">
+<label>Password</label><input id="password" type="password" placeholder="Minimum 6 characters">
+<div class="row">
+<button class="primary" onclick="signUp()">Create account</button>
+<button class="secondary" onclick="signIn()">Login</button>
+</div>
+<p class="muted">If email confirmation is enabled in Supabase, confirm your email before logging in.</p>
+</section>
+
+<section class="card hidden" id="rideCard">
+<h3>🏍️ Create a ride</h3>
+<label>Ride name</label><input id="rideName" placeholder="Bangalore Weekend Ride">
+<label>Destination</label><input id="destination" placeholder="Destination">
+<label>Ride type</label><input id="rideType" value="Touring">
+<button class="primary" onclick="createRide()">Create cloud ride</button>
+<div id="createdRide" class="hidden">
+<div class="small" style="margin-top:16px">Ride code</div>
+<div class="ridecode" id="rideCode"></div>
+<div class="small">Share this code with your brothers.</div>
+</div>
+<hr style="border:0;border-top:1px solid #292d33;margin:18px 0">
+<h3>🔗 Join a ride</h3>
+<input id="joinCode" placeholder="Enter ride code">
+<button class="secondary" onclick="joinRide()">Join cloud ride</button>
+</section>
+
+<section class="card hidden" id="liveCard">
+<h3>📍 Live Ride</h3>
+<div id="map">GPS map connection ready.<br>Tap “Start GPS” to share your location with ride members.</div>
+<div class="grid" style="margin-top:12px">
+<div><div class="small">Latitude</div><div id="lat">—</div></div>
+<div><div class="small">Longitude</div><div id="lng">—</div></div>
+</div>
+<div class="grid" style="margin-top:12px">
+<div><div class="small">Speed</div><div id="speed">—</div></div>
+<div><div class="small">Riders online</div><div id="riders">0</div></div>
+</div>
+<button class="primary" style="margin-top:14px" onclick="startGPS()">📍 Start GPS sharing</button>
+<button class="secondary" onclick="stopGPS()">Stop GPS sharing</button>
+<div id="events" class="muted" style="margin-top:12px"></div>
+</section>
+
+<section class="grid">
+<section class="card"><div class="small">Distance ridden</div><div class="value" id="distance">0 km</div></section>
+<section class="card"><div class="small">States conquered</div><div class="value">0</div></section>
+</section>
+
+<section class="grid">
+<button class="tile" onclick="document.getElementById('rideCard').scrollIntoView({behavior:'smooth'})">🔗 Join Ride</button>
+<button class="tile" onclick="alert('Brothers directory is next.')">👥 Brothers</button>
+<button class="tile" onclick="alert('Public rides discovery is next.')">🗺️ Public Rides</button>
+<button class="tile" onclick="alert('For an emergency, use your phone emergency services.')">🆘 SOS</button>
+</section>
+</main>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL = "https://zphoummdvvfcmbuudjqb.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_dIcHSjddCytTJ5sUm4jLew_o5kUgQg8";
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+let currentUser = null;
+let currentRide = null;
+let gpsWatch = null;
+let realtimeChannel = null;
+let lastPosition = null;
+let totalDistance = 0;
+
+const $ = id => document.getElementById(id);
+function setStatus(text, good=true){$("cloudStatus").textContent=text;$("cloudStatus").style.color=good?"#43e18a":"#ff7777";}
+
+async function init(){
+  const {data:{session}} = await supabase.auth.getSession();
+  await applySession(session);
+  setStatus("Connected to Biking Brothers cloud database.");
+}
+async function applySession(session){
+  currentUser = session?.user || null;
+  $("authCard").classList.toggle("hidden",!!currentUser);
+  $("rideCard").classList.toggle("hidden",!currentUser);
+  $("userBox").classList.toggle("hidden",!currentUser);
+  if(currentUser){$("userEmail").textContent=currentUser.email||currentUser.id;$("online").textContent="● Online";}
+}
+supabase.auth.onAuthStateChange(async (_event,session)=>applySession(session));
+
+window.signUp = async function(){
+  const email=$("email").value.trim(), password=$("password").value;
+  if(!email||password.length<6){alert("Enter an email and a password of at least 6 characters.");return}
+  const {data,error}=await supabase.auth.signUp({email,password});
+  if(error){alert(error.message);return}
+  if(data.session){alert("Account created and logged in.");}
+  else{alert("Account created. Check your email for the confirmation link, then log in.");}
+}
+window.signIn = async function(){
+  const email=$("email").value.trim(), password=$("password").value;
+  const {error}=await supabase.auth.signInWithPassword({email,password});
+  if(error) alert(error.message); else alert("Login successful.");
+}
+window.signOut = async function(){await supabase.auth.signOut();location.reload();}
+
+async function ensureProfile(){
+  if(!currentUser) return false;
+  const {error}=await supabase.from("profiles").upsert({
+    id:currentUser.id,
+    username:(currentUser.email||"rider").split("@")[0],
+    full_name:(currentUser.email||"Rider").split("@")[0]
+  },{onConflict:"id"});
+  if(error){alert("Profile error: "+error.message);return false}
+  return true;
+}
+function randomCode(){return Math.random().toString(36).slice(2,8).toUpperCase();}
+
+window.createRide = async function(){
+  if(!currentUser){alert("Login first.");return}
+  if(!await ensureProfile())return;
+  let code=randomCode();
+  let result=await supabase.from("rides").insert({
+    ride_code:code,
+    name:$("rideName").value.trim()||"Biking Brothers Ride",
+    destination:$("destination").value.trim()||null,
+    ride_type:$("rideType").value.trim()||"Touring",
+    is_public:true,
+    created_by:currentUser.id,
+    status:"planned"
+  }).select().single();
+  if(result.error){alert(result.error.message);return}
+  currentRide=result.data;
+  const member=await supabase.from("ride_members").insert({ride_id:currentRide.id,user_id:currentUser.id,role:"leader"});
+  if(member.error){alert(member.error.message);return}
+  $("createdRide").classList.remove("hidden");$("rideCode").textContent=code;
+  $("liveCard").classList.remove("hidden");setupRealtime();
+}
+
+window.joinRide = async function(){
+  if(!currentUser){alert("Login first.");return}
+  const code=$("joinCode").value.trim().toUpperCase();
+  if(!code){alert("Enter a ride code.");return}
+  const {data:ride,error}=await supabase.from("rides").select("*").eq("ride_code",code).maybeSingle();
+  if(error||!ride){alert(error?.message||"Ride not found.");return}
+  const member=await supabase.from("ride_members").insert({ride_id:ride.id,user_id:currentUser.id,role:"rider"});
+  if(member.error && !member.error.message.includes("duplicate")){alert(member.error.message);return}
+  currentRide=ride;
+  $("liveCard").classList.remove("hidden");setupRealtime();
+  alert("Joined "+ride.name);
+}
+
+function setupRealtime(){
+  if(realtimeChannel) supabase.removeChannel(realtimeChannel);
+  realtimeChannel=supabase.channel("ride-"+currentRide.id)
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"ride_locations",filter:"ride_id=eq."+currentRide.id},
+      payload=>{ $("events").textContent="Live rider update received: "+new Date(payload.new.recorded_at).toLocaleTimeString(); })
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"ride_members",filter:"ride_id=eq."+currentRide.id},
+      ()=>refreshRiders())
+    .subscribe();
+  refreshRiders();
+}
+async function refreshRiders(){
+  if(!currentRide)return;
+  const {data,error}=await supabase.from("ride_members").select("id").eq("ride_id",currentRide.id);
+  if(!error)$("riders").textContent=data.length;
+}
+
+window.startGPS=function(){
+  if(!currentRide){alert("Create or join a ride first.");return}
+  if(!navigator.geolocation){alert("GPS is not available in this browser.");return}
+  if(gpsWatch!==null)return;
+  gpsWatch=navigator.geolocation.watchPosition(async pos=>{
+    const {latitude,longitude,speed,heading,accuracy}=pos.coords;
+    $("lat").textContent=latitude.toFixed(6);$("lng").textContent=longitude.toFixed(6);
+    $("speed").textContent=((speed||0)*3.6).toFixed(1)+" km/h";
+    $("map").innerHTML="📍 GPS active<br>"+latitude.toFixed(5)+", "+longitude.toFixed(5);
+    if(lastPosition){
+      const R=6371,rad=x=>x*Math.PI/180;
+      const dLat=rad(latitude-lastPosition.lat),dLng=rad(longitude-lastPosition.lng);
+      const a=Math.sin(dLat/2)**2+Math.cos(rad(lastPosition.lat))*Math.cos(rad(latitude))*Math.sin(dLng/2)**2;
+      totalDistance+=R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+      $("distance").textContent=totalDistance.toFixed(1)+" km";
+    }
+    lastPosition={lat:latitude,lng:longitude};
+    const {error}=await supabase.from("ride_locations").insert({
+      ride_id:currentRide.id,user_id:currentUser.id,latitude,longitude,
+      speed:speed||0,heading:heading||0,accuracy:accuracy||null
+    });
+    if(error)$("events").textContent="Location upload: "+error.message;
+  },err=>alert("GPS error: "+err.message),{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+}
+window.stopGPS=function(){
+  if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;$("map").innerHTML="GPS sharing stopped.";}
+}
+window.openRide=function(){
+  if(!currentUser){$("authCard").scrollIntoView({behavior:"smooth"});alert("Create/login to your rider account first.");return}
+  $("rideCard").scrollIntoView({behavior:"smooth"});
+}
+init();
 </script>
 </body>
 </html>

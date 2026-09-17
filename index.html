@@ -37,6 +37,9 @@ hr{border:0;border-top:1px solid #292d33;margin:18px 0}
 .live-header h3{margin:0}
 .pill{border:1px solid #343a42;border-radius:999px;padding:7px 11px;font-size:13px;color:#bfc4cb}
 .pill.green{color:var(--green);border-color:#235a3c}.pill.red{color:var(--red);border-color:#613034}
+
+.nav-top{position:absolute;z-index:1000;top:10px;left:10px;right:10px;background:rgba(20,24,28,.96);color:#fff;border-radius:18px;padding:13px 15px;box-shadow:0 8px 30px rgba(0,0,0,.35);backdrop-filter:blur(10px);display:none}.nav-top.show{display:block}.nav-main{display:flex;gap:12px;align-items:flex-start}.nav-arrow{font-size:34px;line-height:1}.nav-text strong{font-size:19px;display:block}.nav-text span{display:block;color:#bfc5cc;font-size:13px;margin-top:3px}.nav-turn{font-size:15px;color:#fff;margin-top:7px}.nav-bottom{position:absolute;z-index:1000;left:10px;right:10px;bottom:10px;background:rgba(12,14,17,.96);border-radius:22px;padding:13px 15px;color:#fff;display:none;box-shadow:0 8px 30px rgba(0,0,0,.35);backdrop-filter:blur(10px)}.nav-bottom.show{display:flex;align-items:center;justify-content:space-between;gap:12px}.nav-eta strong{font-size:25px;color:#79e28d}.nav-eta span{display:block;color:#bfc5cc;font-size:13px;margin-top:2px}.nav-exit{background:#e74c3c;border:0;border-radius:50px;color:#fff;font-weight:800;padding:13px 18px}.route-status{font-size:12px;color:#9ea5ad;margin-top:6px}
+
 #map{height:430px;border-radius:18px;background:#0d1116;border:1px solid #30353c;overflow:hidden;margin-top:14px}
 .leaflet-container{font:inherit;background:#0d1116}
 .leaflet-control-zoom a{background:#111419!important;color:#fff!important;border-color:#383d44!important}
@@ -140,6 +143,20 @@ hr{border:0;border-top:1px solid #292d33;margin:18px 0}
 
   <div id="mapWrap" style="position:relative">
     <div id="map"></div>
+    <div class="nav-top" id="navTop">
+      <div class="nav-main">
+        <div class="nav-arrow" id="navArrow">↑</div>
+        <div class="nav-text">
+          <strong id="navInstruction">Follow the route</strong>
+          <span id="navRoad">Preparing navigation…</span>
+          <div class="nav-turn" id="navTurn"></div>
+        </div>
+      </div>
+    </div>
+    <div class="nav-bottom" id="navBottom">
+      <div class="nav-eta"><strong id="navEta">—</strong><span id="navDistance">Route ready</span></div>
+      <button class="nav-exit" onclick="stopNavigation()">Exit</button>
+    </div>
     <div class="map-overlay">
       <div class="map-chip">
         <strong id="mapRideName">Biking Brothers</strong>
@@ -221,6 +238,7 @@ let currentUser=null,currentRide=null,gpsWatch=null,realtimeChannel=null;
 let map=null,myMarker=null,destinationMarker=null,routeLine=null;
 let memberMarkers=new Map(),memberRows=new Map(),latestLocations=new Map();
 let lastPosition=null,totalDistance=0,routeRequestId=0,rideStarted=false;
+let navSteps=[],navRouteCoords=[],navStepIndex=0,navDestination=null,navTotalDistance=0,navTotalDuration=0;
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
@@ -299,6 +317,7 @@ window.createRide=async()=>{
   show("createdRide");
   show("liveCard");show("membersCard");
   await setupRide();
+  setTimeout(()=>{ if(map) map.invalidateSize(true); }, 700);
   $("liveCard").scrollIntoView({behavior:"smooth"});
 };
 
@@ -326,16 +345,16 @@ window.joinRide=async()=>{
 function initMap(){
   if(map)return;
   map=L.map("map",{zoomControl:true}).setView([12.9716,77.5946],12);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{
     maxZoom:19,
-    attribution:'&copy; OpenStreetMap contributors'
+    attribution:'&copy; OpenStreetMap contributors &copy; CARTO'
   }).addTo(map);
-  setTimeout(()=>map.invalidateSize(),250);
+  setTimeout(()=>map.invalidateSize(true),250);
 }
 
 async function setupRide(){
   initMap();
-  map.invalidateSize();
+  map.invalidateSize(true);
   $("mapRideName").textContent=currentRide.name||"Biking Brothers";
   $("mapDestination").textContent="Destination: "+(currentRide.destination||"—");
   rideStarted=currentRide.status==="active";
@@ -352,6 +371,14 @@ async function setupRide(){
     await geocodeDestination(currentRide.destination);
   }
 }
+
+
+function keepMapSized(){
+  if(!map) return;
+  requestAnimationFrame(()=>map.invalidateSize(true));
+}
+window.addEventListener("resize", keepMapSized);
+window.addEventListener("orientationchange", ()=>setTimeout(keepMapSized,400));
 
 function setupRealtime(){
   if(realtimeChannel)supabase.removeChannel(realtimeChannel);
@@ -462,20 +489,72 @@ async function buildRoute(fromLat,fromLng,destination){
     const places=await geo.json();
     if(id!==routeRequestId||!places?.length)return;
     const dlat=Number(places[0].lat),dlng=Number(places[0].lon);
+    navDestination={lat:dlat,lng:dlng,name:destination};
     if(destinationMarker)destinationMarker.remove();
     destinationMarker=L.marker([dlat,dlng]).addTo(map).bindPopup("🏁 "+esc(destination));
-    const route=await fetch(`https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${dlng},${dlat}?overview=full&geometries=geojson`);
+    const route=await fetch(`https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${dlng},${dlat}?overview=full&geometries=geojson&steps=true`);
     const json=await route.json();
     if(id!==routeRequestId||!json.routes?.length)return;
+    const r=json.routes[0];
     if(routeLine)routeLine.remove();
-    routeLine=L.geoJSON(json.routes[0].geometry,{style:{weight:6,opacity:.85}}).addTo(map);
-    const km=(json.routes[0].distance/1000).toFixed(0);
-    const mins=Math.round(json.routes[0].duration/60000);
-    $("mapDestination").textContent=`${destination} · ${km} km · ~${mins} min`;
+    routeLine=L.geoJSON(r.geometry,{style:{weight:7,opacity:.92}}).addTo(map);
+    navSteps=r.legs?.[0]?.steps||[];
+    navRouteCoords=r.geometry?.coordinates||[];
+    navStepIndex=0;
+    navTotalDistance=r.distance||0;
+    navTotalDuration=r.duration||0;
+    updateNavigationUI(fromLat,fromLng);
+    $("mapDestination").textContent=`${destination} · ${(navTotalDistance/1000).toFixed(0)} km · ~${Math.round(navTotalDuration/60000)} min`;
     const group=L.featureGroup([myMarker,destinationMarker,routeLine].filter(Boolean));
     map.fitBounds(group.getBounds(),{padding:[35,35]});
-  }catch(e){}
+  }catch(e){
+    $("liveMessage").textContent="Navigation route unavailable. GPS sharing can still continue.";
+  }
 }
+
+function navDist(a,b){
+  const R=6371000, p1=a.lat*Math.PI/180,p2=b.lat*Math.PI/180,dp=(b.lat-a.lat)*Math.PI/180,dl=(b.lng-a.lng)*Math.PI/180;
+  const x=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+  return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+function stepManeuver(step){
+  const t=step?.maneuver?.type||""; const m=step?.maneuver?.modifier||"";
+  if(t==="arrive")return {arrow:"✓",text:"You have arrived",road:step.name||navDestination?.name||"Destination"};
+  if(t==="depart")return {arrow:"↑",text:"Start on the route",road:step.name||"Road"};
+  if(t==="roundabout"||t==="rotary")return {arrow:"↻",text:"Enter the roundabout",road:step.name||"Roundabout"};
+  const map={left:"←",right:"→",slight_left:"↖",slight_right:"↗",sharp_left:"↙",sharp_right:"↘",straight:"↑",uturn:"↶"};
+  return {arrow:map[m]||"↑",text:(m?m.replace("_"," ")+"":"Continue"),road:step.name||"Road"};
+}
+function updateNavigationUI(lat,lng){
+  if(!navSteps.length)return;
+  let best=navStepIndex;
+  let bestD=Infinity;
+  for(let i=Math.max(0,navStepIndex-1);i<Math.min(navSteps.length,navStepIndex+4);i++){
+    const loc=navSteps[i]?.maneuver?.location;
+    if(!loc)continue;
+    const d=navDist({lat,lng},{lat:loc[1],lng:loc[0]});
+    if(d<bestD){bestD=d;best=i;}
+  }
+  navStepIndex=Math.max(navStepIndex,best);
+  const step=navSteps[navStepIndex];
+  const info=stepManeuver(step);
+  $("navArrow").textContent=info.arrow;
+  $("navInstruction").textContent=info.text.charAt(0).toUpperCase()+info.text.slice(1);
+  $("navRoad").textContent=info.road;
+  const meters=Math.max(0,Math.round(step?.distance||0));
+  $("navTurn").textContent=meters>=1000?(meters/1000).toFixed(1)+" km":"in "+meters+" m";
+  const remainingSteps=navSteps.slice(navStepIndex);
+  const remaining=remainingSteps.reduce((a,x)=>a+(x.distance||0),0);
+  const remainSec=remainingSteps.reduce((a,x)=>a+(x.duration||0),0);
+  $("navEta").textContent=remainSec>=60?Math.round(remainSec/60)+" min":"Arriving";
+  $("navDistance").textContent=(remaining/1000).toFixed(1)+" km · "+(navDestination?.name||"Destination");
+  $("navTop").classList.add("show");
+  $("navBottom").classList.add("show");
+}
+window.stopNavigation=()=>{
+  $("navTop").classList.remove("show");
+  $("navBottom").classList.remove("show");
+};
 
 window.centerOnMe=()=>{
   if(myMarker&&map)map.setView(myMarker.getLatLng(),16,{animate:true});
@@ -497,6 +576,8 @@ window.startGPS=()=>{
     $("lat").textContent=latitude.toFixed(6);$("lng").textContent=longitude.toFixed(6);
     $("speed").textContent=((speed||0)*3.6).toFixed(1)+" km/h";
     setMyMarker(latitude,longitude);
+    if(navSteps.length) updateNavigationUI(latitude,longitude);
+    if(rideStarted && map && myMarker){ map.panTo([latitude,longitude],{animate:true,duration:.35}); }
     if(!lastPosition){
       map.setView([latitude,longitude],15,{animate:true});
       await buildRoute(latitude,longitude,currentRide.destination);

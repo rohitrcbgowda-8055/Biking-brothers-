@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#070809">
+<title>Biking Brothers</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{box-sizing:border-box}
+:root{--bg:#070809;--card:#111419;--line:#2b3037;--muted:#9ba0a8;--yellow:#ffd000;--green:#43e18a;--red:#ff5c63;--blue:#2f8cff}
+html,body{margin:0;background:var(--bg);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{padding:18px 16px;border-bottom:1px solid #25282c;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:1000;background:rgba(7,8,9,.96);backdrop-filter:blur(14px)}
+.logo{width:50px;height:50px;border-radius:14px;background:var(--yellow);color:#111;display:grid;place-items:center;font-weight:900;font-size:23px}
+h1{font-size:22px;margin:0}.tag{color:var(--muted);font-size:13px;margin-top:3px}.online{margin-left:auto;color:var(--green);font-weight:700;font-size:13px}
+main{max-width:850px;margin:auto;padding:16px}.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px;margin-bottom:14px}
+.hero h2{font-size:32px;line-height:1.08;margin:0 0 10px}.hero p{color:#a8adb5;font-size:16px;line-height:1.4}
+button{border:0;border-radius:14px;padding:13px 15px;font-size:16px;font-weight:750;cursor:pointer}button:disabled{opacity:.45}
+.primary{background:var(--yellow);color:#111;width:100%}.secondary{background:#20242a;color:#fff;width:100%;margin-top:9px}.danger{background:#6c171c;color:#fff;width:100%;margin-top:9px}
+.row{display:flex;gap:9px}.row>*{flex:1}
+input,select{width:100%;padding:13px;border-radius:12px;border:1px solid #383d44;background:#08090b;color:#fff;margin:6px 0 11px;font-size:16px}
+label{font-size:13px;color:#bfc4cb}.muted,.small{color:var(--muted);font-size:13px}.status{padding:8px 0;color:var(--green);word-break:break-word}
+.hidden{display:none!important}.ridecode{text-align:center;font-size:31px;font-weight:900;letter-spacing:4px;padding:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tile{background:#111419;border:1px solid #2b3037;color:#fff;width:100%}.value{font-size:27px;font-weight:800;margin-top:5px}
+.live-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.pill{border:1px solid #343a42;border-radius:999px;padding:7px 10px;font-size:12px;color:#bfc4cb}.pill.green{color:var(--green);border-color:#235a3c}
+#map{height:430px;border-radius:17px;background:#0d1116;border:1px solid #30353c;overflow:hidden;margin-top:13px}
+#mapWrap{position:relative}.map-overlay{position:absolute;z-index:900;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;pointer-events:none}
+.map-chip{background:rgba(10,12,15,.92);border:1px solid #343a42;border-radius:13px;padding:8px 10px;pointer-events:auto;max-width:48%}.map-chip strong{display:block;font-size:13px}.map-chip span{font-size:11px;color:#b9bec6}
+.report-btn{position:absolute;right:12px;bottom:240px;z-index:1201;border:0;border-radius:22px;background:#171717;color:#fff;padding:12px 18px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.map-actions{position:absolute;z-index:1200;right:12px;bottom:12px;display:flex;gap:8px;flex-direction:column;align-items:flex-end}
+.gps-status{position:absolute;top:12px;right:12px;z-index:1200;background:rgba(10,15,20,.88);color:#55a8ff;border:1px solid rgba(70,150,255,.5);border-radius:20px;padding:7px 11px;font-size:11px;font-weight:800}
+.nav-fab-row{position:absolute;right:12px;bottom:310px;z-index:1200}
+.nav-fab{width:54px;height:54px;border-radius:50%;border:1px solid #5da8ff;background:#1677ff;color:#fff;font-size:27px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.route-mode-card{position:absolute;left:14px;top:12px;z-index:1200;background:rgba(10,14,18,.94);border:1px solid #343b44;border-radius:14px;padding:9px 12px;box-shadow:0 4px 16px rgba(0,0,0,.35)}
+.route-mode-active{color:#fff;font-size:13px}.route-mode-meta{color:#9da6b0;font-size:10px;margin-top:3px}.map-actions .sos-map-btn{background:#a91515;border-color:#ff4d4d}
+.map-actions .gps-map-btn{background:#1677ff;border-color:#4aa0ff;position:relative}
+.map-actions .gps-label{font-size:8px;font-weight:800;line-height:8px;display:block}.ride-options{position:absolute;right:55px;bottom:0;z-index:1300;background:rgba(10,12,15,.97);border:1px solid #343a42;border-radius:12px;padding:7px;display:flex;flex-direction:column;gap:6px;min-width:175px;box-shadow:0 5px 18px rgba(0,0,0,.4)}.ride-options[hidden]{display:none}.ride-options button{background:#242a31;color:#fff;border:1px solid #3a414a;border-radius:9px;padding:9px 11px;text-align:left;font-size:12px}.map-btn{width:45px;height:45px;padding:0;background:rgba(10,12,15,.94);color:#fff;border:1px solid #343a42;font-size:19px}
+.nav-top{position:absolute;z-index:950;top:12px;left:12px;right:12px;background:transparent;border-radius:18px;padding:0;display:none;box-shadow:none}
+.nav-top.show{display:block}
+.gm-route-card{background:#fff;color:#202124;border-radius:22px;padding:12px 15px;box-shadow:0 5px 20px rgba(0,0,0,.25)}
+.gm-route-row{display:flex;align-items:center;gap:12px;min-height:38px}
+.gm-route-icon{width:25px;height:25px;display:grid;place-items:center;flex:none}
+.live-dot{width:14px;height:14px;border-radius:50%;background:#4285f4;border:3px solid #d9e8ff;margin-left:5px}
+.dest-pin{font-size:23px;color:#d93025}
+.gm-route-text{font-size:16px;flex:1}
+.gm-route-text strong{font-weight:500}
+.gm-route-dots{height:17px;border-left:2px dotted #aeb3b8;margin-left:11px}
+.destination-row{border-top:1px solid #e5e7eb;padding-top:4px}
+.route-menu{border:0;background:transparent;color:#202124;font-weight:800;font-size:18px}
+.nav-bottom{position:absolute;z-index:950;left:0;right:0;bottom:0;background:#fff;color:#202124;border-radius:24px 24px 0 0;padding:12px 14px 16px;display:none;flex-direction:column;box-shadow:0 -5px 20px rgba(0,0,0,.2)}
+.nav-bottom.show{display:flex}
+#liveCard.navigating .nav-bottom{background:#171717;color:#fff;border-radius:22px 22px 0 0;padding:13px 16px 17px}
+#liveCard.navigating .gm-sheet-head{color:#fff}
+#liveCard.navigating .gm-sheet-icons button{background:#2b2b2b;color:#fff}
+#liveCard.navigating .gm-modes{display:none}
+#liveCard.navigating .gm-route-summary{padding:4px 3px 5px}
+#liveCard.navigating .gm-big-eta{font-size:34px;color:#63dc8b;font-weight:600}
+#liveCard.navigating .gm-summary-text strong{font-weight:500}
+#liveCard.navigating .gm-summary-text span{color:#b8b8b8;font-size:15px}
+#liveCard.navigating .gm-sheet-actions{display:none}
+.active-maneuver{display:none;background:#006b6b;color:#fff;border-radius:0 0 18px 18px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+#liveCard.navigating .active-maneuver{display:block}
+.maneuver-main{font-size:27px;font-weight:500;display:flex;align-items:center;gap:18px;padding:22px 20px}
+.maneuver-main #navArrow{font-size:46px;line-height:1}
+.maneuver-then{background:#075555;padding:12px 20px;font-size:18px;font-weight:600}
+#liveCard.navigating .gm-route-card{display:none}
+.gm-sheet-head{display:flex;align-items:center;justify-content:space-between;font-size:24px;padding:2px 2px 8px}
+.gm-sheet-icons{display:flex;gap:7px}.gm-sheet-icons button{width:40px;height:40px;border:0;border-radius:50%;background:#f1f3f4;font-size:18px}
+.gm-modes{display:flex;gap:5px;border-bottom:1px solid #e5e7eb;padding-bottom:7px}
+.gm-mode{flex:1;border:0;background:transparent;color:#5f6368;padding:8px 3px;border-bottom:3px solid transparent;font-size:13px}
+.gm-mode.active{color:#007b8a;border-bottom-color:#008b9a}
+.gm-mode span{display:block}.gm-mode b{display:block;margin-top:3px}
+.gm-route-summary{display:flex;align-items:center;gap:12px;padding:12px 5px}
+.gm-big-eta{font-size:30px;color:#16803a;font-weight:500}
+.gm-summary-text strong,.gm-summary-text span{display:block}.gm-summary-text span{color:#5f6368;margin-top:4px;font-size:13px}
+.gm-sheet-actions{display:flex;gap:8px}.gm-sheet-actions button{border:0;border-radius:25px;background:#d9f3f7;color:#075c67;padding:12px 17px;font-size:14px;font-weight:600}.gm-sheet-actions .gm-start{background:#008b9a;color:#fff}.nav-top.show{display:block}.nav-route-line{display:flex;gap:7px;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#dfe4ea;font-size:12px;font-weight:700;margin-bottom:9px}.nav-route-line span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.route-modes{display:flex;align-items:center;gap:8px;margin:0 0 8px}
+.route-mode{border:1px solid #3a414a;background:#242a31;color:#dfe4ea;border-radius:10px;padding:7px 12px;font-size:12px;cursor:pointer}
+.route-mode.active{background:#fff;color:#111;border-color:#fff}
+.route-mode-note{font-size:11px;color:#aeb5bd}
+.nav-main{display:flex;gap:10px}.nav-arrow{font-size:31px}.nav-text strong{font-size:17px}.nav-text span{display:block;color:#bfc5cc;font-size:12px;margin-top:3px}.nav-turn{font-size:13px;margin-top:5px}.nav-bottom{position:absolute;z-index:950;left:10px;right:10px;bottom:10px;background:rgba(12,14,17,.97);border-radius:19px;padding:11px 13px;display:none;align-items:center;justify-content:space-between}.nav-bottom.show{display:flex}.nav-eta strong{font-size:23px;color:#79e28d}.nav-eta span{display:block;color:#bfc5cc;font-size:12px}.nav-exit{background:#e74c3c;color:#fff;border-radius:20px;padding:10px 16px}
+.actions3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:11px}.actions3 button{font-size:14px;padding:12px 8px}.break{background:#34404c;color:#fff}.help{background:#4b2b12;color:#fff}.sos{background:#8b171c;color:#fff}
+.notice{color:#aeb3bb;font-size:13px;line-height:1.4;margin-top:10px}.ok{padding:11px;border-radius:13px;background:#102419;border:1px solid #285a3c;color:#9be8bb;margin-top:10px}.alert{padding:11px;border-radius:13px;background:#241416;border:1px solid #5d2d32;color:#ffb8bc;margin-top:10px}
+.member{padding:11px 0;border-bottom:1px solid #292d33;display:flex;justify-content:space-between}.member:last-child{border:0}.member-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.dot-marker{width:24px;height:24px;border-radius:50%;background:#2f8cff;border:4px solid #fff;box-shadow:0 0 0 6px #2f8cff33}.bike-marker{width:37px;height:37px;border-radius:50%;display:grid;place-items:center;background:#ffd000;border:3px solid #111;box-shadow:0 3px 12px #0008;font-size:20px}.leader-marker{background:#fff;color:#111}
+.fullscreen #map{position:fixed;inset:0;width:100vw;height:100dvh;border:0;border-radius:0;margin:0;z-index:500}.fullscreen{position:fixed;inset:0;z-index:4000;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:#000;overflow:hidden;width:100vw;height:100dvh}.fullscreen .map-overlay,.fullscreen .live-head,.fullscreen .grid,.fullscreen .actions3,.fullscreen>.secondary,.fullscreen>.danger,.fullscreen>.notice,.fullscreen>#mapWrap~*{display:none!important}.fullscreen #mapWrap{position:fixed;inset:0}.fullscreen .map-actions{bottom:25px;right:14px}
+.fullscreen .nav-top{top:calc(env(safe-area-inset-top) + 12px);left:12px;right:12px}
+.fullscreen .nav-bottom{left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 14px)}
+.fullscreen #mapWrap{height:100%;width:100%}
+.fullscreen #map{height:100%;width:100%}
+@media(max-width:560px){.grid{grid-template-columns:1fr 1fr}.actions3{grid-template-columns:1fr}.hero h2{font-size:29px}}
+</style>
+</head>
+<body>
+<header>
+<div class="logo">BB</div>
+<div><h1>Biking Brothers</h1><div class="tag">Connected by Roads. United by Brotherhood.</div></div>
+<div class="online" id="online">● Cloud</div>
+</header>
+
+<main>
+<section class="card hero">
+<h2>Ride together.<br>Never get left behind.</h2>
+<p>Live group riding, rider locations, road navigation, break/help alerts and cloud-synced rides.</p>
+<button class="primary" onclick="openRide()">🏍️ Start a Ride</button>
+</section>
+
+<section class="card">
+<h3>☁️ Cloud connection</h3>
+<div id="cloudStatus" class="status">Connecting…</div>
+<div id="userBox" class="hidden">
+<div class="small">Signed in as</div><div id="userEmail"></div>
+<button class="secondary" onclick="signOut()">Sign out</button>
+</div>
+</section>
+
+<section class="card" id="authCard">
+<h3>👤 Rider account</h3>
+<label>Email</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com">
+<label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Minimum 6 characters">
+<div class="row">
+<button class="primary" onclick="signUp()">Create account</button>
+<button class="secondary" onclick="signIn()">Login</button>
+</div>
+<p class="muted">If email confirmation is enabled in Supabase, confirm the email before logging in.</p>
+</section>
+
+<section class="card hidden" id="rideCard">
+<h3>🏍️ Create a ride</h3>
+<label>Ride name</label><input id="rideName" placeholder="Bengaluru Weekend Ride">
+<label>Destination</label><input id="destination" placeholder="Enter destination, e.g. Hassan"><div class="notice" style="margin:-3px 0 9px">📍 Your current GPS location will be used automatically as the starting point.</div>
+<label>Ride type</label>
+<select id="rideType"><option>Touring</option><option>Breakfast Ride</option><option>Off-road</option><option>Group Ride</option></select>
+<button class="primary" onclick="createRide()">Create cloud ride</button>
+<div id="createdRide" class="hidden"><div class="small" style="margin-top:15px">Ride code</div><div class="ridecode" id="rideCode"></div><div class="small">Share this code with your brothers.</div></div>
+<hr>
+<h3>🔗 Join a ride</h3><input id="joinCode" placeholder="Enter ride code">
+<button class="secondary" onclick="joinRide()">Join cloud ride</button>
+</section>
+
+<section class="card hidden" id="liveCard">
+<div class="live-head"><h3>📍 Live Ride</h3><div class="pill" id="ridePill">Ride not started</div></div>
+<div id="mapWrap">
+<div id="map"></div>
+<div class="nav-top" id="navTop">
+  <div id="activeManeuver" class="active-maneuver">
+    <div class="maneuver-main"><span id="navArrow">↑</span><span id="activeManeuverText">towards your next road</span></div>
+    <div class="maneuver-then">Then <span id="navNextArrow">→</span></div>
+  </div>
+  <div class="gm-route-card">
+    <div class="gm-route-row">
+      <div class="gm-route-icon live-dot"></div>
+      <div class="gm-route-text"><strong id="navOrigin">Your location</strong></div>
+    </div>
+    <div class="gm-route-dots"></div>
+    <div class="gm-route-row destination-row">
+      <div class="gm-route-icon dest-pin">⌖</div>
+      <div class="gm-route-text"><strong id="navDestinationName">Destination</strong></div>
+      <button class="route-menu" onclick="toggleRideOptions()">•••</button>
+    </div>
+  </div>
+</div>
+<div class="nav-bottom" id="navBottom">
+  <div class="gm-sheet-head">
+    <strong>Drive</strong>
+    <div class="gm-sheet-icons">
+      <button onclick="alert('Route options')">☷</button>
+      <button onclick="saveRoute()">🔖</button>
+      <button onclick="stopNavigation()">✕</button>
+    </div>
+  </div>
+  <div class="gm-modes">
+    <button class="gm-mode active" id="driveMode" onclick="setRouteMode('driving')">🚗 <span>Drive</span><b id="modeEta">—</b></button>
+    <button class="gm-mode" disabled>🏍️ <span>Bike</span><b>—</b></button>
+    <button class="gm-mode" disabled>🚶 <span>Walk</span><b>—</b></button>
+  </div>
+  <div class="gm-route-summary">
+    <div class="gm-big-eta" id="navEta">—</div>
+    <div class="gm-summary-text"><strong id="navArrival">Route ready</strong><span id="navDistance">— km</span></div>
+  </div>
+  <div class="gm-sheet-actions">
+    <button class="gm-start" onclick="startNavigationNow()">➤ Start</button>
+    <button onclick="addRouteStop()">＋ Add stops</button>
+    <button onclick="saveRoute()">🔖 Save</button>
+  </div>
+</div>
+<div class="map-overlay"><div class="map-chip"><strong id="mapRideName">Biking Brothers</strong><span id="mapDestination">Destination —</span></div><div class="map-chip"><strong id="mapRiderCount">1 rider</strong><span id="mapLeader">Leader —</span></div></div>
+<button class="report-btn" onclick="alert('Report an issue')">⚠ Report</button>
+<div class="map-actions">
+<button class="map-btn gps-map-btn" onclick="startGpsAndCenter()" title="My GPS location">📍<span class="gps-label">GPS</span></button>
+<button class="map-btn" onclick="fitRide()" title="Fit route">⛶</button>
+<button class="map-btn" onclick="requestBreak()" title="Break">☕</button>
+<button class="map-btn sos-map-btn" onclick="requestHelp()" title="SOS">🆘</button>
+<button class="map-btn" onclick="toggleRideOptions()" title="More options">⋮</button>
+<button class="map-btn" onclick="exitMapFullscreen()" title="Exit full screen">✕</button>
+<div id="gpsStatus" class="gps-status">● GPS</div>
+<div class="nav-fab-row">
+  <button class="nav-fab" onclick="startGpsAndCenter()" title="Current location">⌾</button>
+</div>
+<div id="routeModeCard" class="route-mode-card">
+  <div class="route-mode-active">🚗 <b>Drive</b></div>
+  <div class="route-mode-meta">Live GPS navigation</div>
+</div>
+<div id="rideOptions" class="ride-options" hidden>
+  <button onclick="requestHelp();toggleRideOptions()">🆘 Emergency Help</button>
+  <button onclick="alert('Left-behind alert sent to the ride') ;toggleRideOptions()">👥 Left Behind</button>
+  <button onclick="alert('Wrong-route alert sent to the ride') ;toggleRideOptions()">↪️ Wrong Route</button>
+  <button onclick="toggleRideStatus();toggleRideOptions()">▶️ Start / Pause Ride</button>
+</div>
+</div>
+</div>
+<div class="grid" style="margin-top:14px"><div><div class="small">Speed</div><div class="value" id="speed">0 km/h</div></div><div><div class="small">Riders online</div><div class="value" id="riders">1</div></div></div>
+<div class="grid" style="margin-top:11px"><div><div class="small">Latitude</div><div id="lat">—</div></div><div><div class="small">Longitude</div><div id="lng">—</div></div></div>
+<div class="actions3"><button class="primary" onclick="startGPS()">📍 Start GPS</button><button class="break" onclick="requestBreak()">☕ Break</button><button class="help" onclick="requestHelp()">🆘 Help</button></div>
+<button class="secondary" onclick="stopGPS()">Stop GPS sharing</button><button class="secondary" onclick="toggleRideStatus()" id="rideStatusBtn">▶️ Start Ride</button><button class="danger" onclick="endRide()">⏹ End Ride</button>
+<div id="liveMessage" class="notice">Start GPS to share your position with ride members.</div><div id="alerts"></div>
+</section>
+
+<section class="card hidden" id="membersCard"><div class="live-head"><h3>👥 Brothers on this ride</h3><div class="pill" id="memberStatus">Realtime</div></div><div id="membersList"></div></section>
+<section class="grid"><section class="card"><div class="small">Distance ridden</div><div class="value" id="distance">0.0 km</div></section><section class="card"><div class="small">States conquered</div><div class="value">0</div></section></section>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module">
+import {createClient} from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL="https://zphoummdvvfcmbuudjqb.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_dIcHSjddCytTJ5sUm4jLew_o5kUgQg8";
+const supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+
+let currentUser=null,currentRide=null,map=null,myMarker=null,destinationMarker=null,routeLine=null;
+let gpsWatch=null,realtimeChannel=null,lastPosition=null,totalDistance=0,rideStarted=false;
+let memberRows=new Map(),latestLocations=new Map(),memberMarkers=new Map();
+let navSteps=[],navDestination=null,navStepIndex=0,navTotalDistance=0,navTotalDuration=0,routeRequestId=0,routeMode="driving";
+const $=id=>document.getElementById(id);
+const show=id=>$(id).classList.remove("hidden"), hide=id=>$(id).classList.add("hidden");
+
+function setStatus(t,good=true){$("cloudStatus").textContent=t;$("cloudStatus").style.color=good?"#43e18a":"#ff7777";}
+function friendlyError(e){return e?.message||String(e)||"Unknown error";}
+
+async function init(){
+ try{
+  const {data,error}=await supabase.auth.getSession();
+  if(error) throw error;
+  await applySession(data.session);
+  setStatus("Connected to Biking Brothers cloud database.");
+ }catch(e){setStatus("Cloud error: "+friendlyError(e),false);}
+}
+async function applySession(session){
+ currentUser=session?.user||null;
+ $("authCard").classList.toggle("hidden",!!currentUser);
+ $("rideCard").classList.toggle("hidden",!currentUser);
+ $("userBox").classList.toggle("hidden",!currentUser);
+ if(currentUser){$("userEmail").textContent=currentUser.email||currentUser.id;$("online").textContent="● Online";}
+ else $("online").textContent="● Cloud";
+}
+supabase.auth.onAuthStateChange((_event,session)=>applySession(session));
+
+window.signUp=async()=>{
+ const email=$("email").value.trim(),password=$("password").value;
+ if(!email||password.length<6){alert("Enter a valid email and a password of at least 6 characters.");return;}
+ $("cloudStatus").textContent="Creating account…";
+ const {data,error}=await supabase.auth.signUp({email,password});
+ if(error){alert("Create account: "+error.message);return;}
+ if(data.session) alert("Account created and logged in.");
+ else alert("Account created. Check your email confirmation, then use Login.");
+};
+window.signIn=async()=>{
+ const email=$("email").value.trim(),password=$("password").value;
+ if(!email||!password){alert("Enter your email and password.");return;}
+ $("cloudStatus").textContent="Logging in…";
+ const {data,error}=await supabase.auth.signInWithPassword({email,password});
+ if(error){alert("Login failed: "+error.message);return;}
+ await applySession(data.session);
+ $("cloudStatus").textContent="Login successful.";
+};
+window.signOut=async()=>{await supabase.auth.signOut();location.reload();};
+
+async function ensureProfile(){
+ if(!currentUser)return false;
+ const {error}=await supabase.from("profiles").upsert({
+  id:currentUser.id,username:(currentUser.email||"rider").split("@")[0],full_name:(currentUser.email||"Rider").split("@")[0]
+ },{onConflict:"id"});
+ if(error){alert("Profile error: "+error.message);return false;}
+ return true;
+}
+function randomCode(){return Math.random().toString(36).slice(2,8).toUpperCase();}
+
+window.createRide=async()=>{
+ if(!currentUser){alert("Login first.");return;}
+ if(!await ensureProfile())return;
+ let code=randomCode();
+ for(let i=0;i<4;i++){
+  const {data}=await supabase.from("rides").select("id").eq("ride_code",code).maybeSingle();
+  if(!data)break; code=randomCode();
+ }
+ const {data:ride,error}=await supabase.from("rides").insert({
+  ride_code:code,name:$("rideName").value.trim()||"Biking Brothers Ride",
+  destination:$("destination").value.trim()||null,ride_type:$("rideType").value,
+  is_public:true,created_by:currentUser.id,status:"planned"
+ }).select().single();
+ if(error){alert("Create ride: "+error.message);return;}
+ const {error:me}=await supabase.from("ride_members").insert({ride_id:ride.id,user_id:currentUser.id,role:"leader"});
+ if(me){alert("Ride member: "+me.message);return;}
+ currentRide=ride;$("rideCode").textContent=code;show("createdRide");show("liveCard");show("membersCard");
+ await setupRide();$("liveCard").scrollIntoView({behavior:"smooth"});
+};
+
+window.joinRide=async()=>{
+ if(!currentUser){alert("Login first.");return;}
+ const code=$("joinCode").value.trim().toUpperCase();
+ if(!code){alert("Enter a ride code.");return;}
+ const {data:ride,error}=await supabase.from("rides").select("*").eq("ride_code",code).maybeSingle();
+ if(error||!ride){alert(error?.message||"Ride not found.");return;}
+ const {error:me}=await supabase.from("ride_members").insert({ride_id:ride.id,user_id:currentUser.id,role:"rider"});
+ if(me&&!me.message.toLowerCase().includes("duplicate")){alert("Join ride: "+me.message);return;}
+ currentRide=ride;$("rideCode").textContent=ride.ride_code;$("rideName").value=ride.name||"";$("destination").value=ride.destination||"";
+ show("createdRide");show("liveCard");show("membersCard");await setupRide();$("liveCard").scrollIntoView({behavior:"smooth"});
+};
+
+let streetLayer=null, satelliteLayer=null, satelliteLabels=null;
+function initMap(){
+ if(map)return;
+ map=L.map("map",{zoomControl:true}).setView([12.9716,77.5946],12);
+ streetLayer=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(map);
+ satelliteLayer=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Tiles © Esri"}); 
+ satelliteLabels=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Labels © Esri"});
+ setTimeout(()=>map.invalidateSize(true),200);
+} 
+function setNavigationMapStyle(on){
+ if(!map)return;
+ if(on){
+   if(map.hasLayer(streetLayer))map.removeLayer(streetLayer);
+   if(!map.hasLayer(satelliteLayer))satelliteLayer.addTo(map);
+   if(!map.hasLayer(satelliteLabels))satelliteLabels.addTo(map);
+ }else{
+   if(map.hasLayer(satelliteLabels))map.removeLayer(satelliteLabels);
+   if(map.hasLayer(satelliteLayer))map.removeLayer(satelliteLayer);
+   if(!map.hasLayer(streetLayer))streetLayer.addTo(map);
+ }
+}
+async function setupRide(){
+ $("liveCard").classList.remove("fullscreen","navigating");
+ initMap();map.invalidateSize(true);
+ $("mapRideName").textContent=currentRide.name||"Biking Brothers";
+ $("mapDestination").textContent="Destination: "+(currentRide.destination||"—");
+ $("navDestinationName").textContent="⌖ "+(currentRide.destination||"Destination");
+ rideStarted=currentRide.status==="active";updateRideStatusUI();
+ await loadMembers();await loadLocations();setupRealtime();
+ if(latestLocations.has(currentUser.id)){
+   const p=latestLocations.get(currentUser.id);
+   setMyMarker(+p.latitude,+p.longitude);
+   map.setView([+p.latitude,+p.longitude],14);
+   await buildRoute(+p.latitude,+p.longitude,currentRide.destination);
+ } else if(currentRide.destination){
+   await geocodeDestination(currentRide.destination);
+ }
+ setTimeout(()=>startGPS(),250);
+}
+window.addEventListener("resize",()=>map&&map.invalidateSize(true));
+
+function setupRealtime(){
+ if(realtimeChannel)supabase.removeChannel(realtimeChannel);
+ realtimeChannel=supabase.channel("bb-live-"+currentRide.id)
+ .on("postgres_changes",{event:"*",schema:"public",table:"ride_locations",filter:"ride_id=eq."+currentRide.id},handleLocationEvent)
+ .on("postgres_changes",{event:"*",schema:"public",table:"ride_members",filter:"ride_id=eq."+currentRide.id},async()=>{await loadMembers();await loadLocations()})
+ .on("postgres_changes",{event:"UPDATE",schema:"public",table:"rides",filter:"id=eq."+currentRide.id},p=>{currentRide={...currentRide,...p.new};rideStarted=currentRide.status==="active";updateRideStatusUI()})
+ .on("postgres_changes",{event:"*",schema:"public",table:"ride_events",filter:"ride_id=eq."+currentRide.id},p=>{if(p.new?.event_type)$("liveMessage").textContent="🔔 Ride alert: "+(p.new.payload?.message||p.new.event_type);})
+ .subscribe(s=>$("memberStatus").textContent=s==="SUBSCRIBED"?"Realtime connected":"Realtime "+s);
+}
+function handleLocationEvent(p){
+ if(p.eventType==="DELETE"||!p.new?.user_id)return;
+ latestLocations.set(p.new.user_id,p.new);renderLocation(p.new);refreshMemberStatuses();
+}
+async function loadMembers(){
+ const {data,error}=await supabase.from("ride_members").select("id,user_id,role").eq("ride_id",currentRide.id);
+ if(error){$("memberStatus").textContent="Members unavailable";return;}
+ memberRows.clear();(data||[]).forEach(x=>memberRows.set(x.user_id,x));
+ $("riders").textContent=data.length;$("mapRiderCount").textContent=data.length+" "+(data.length===1?"rider":"riders");
+ const leader=data.find(x=>x.role==="leader");$("mapLeader").textContent=leader?(leader.user_id===currentUser.id?"Leader: You":"Leader: "+leader.user_id.slice(0,8)):"Leader —";
+ $("membersList").innerHTML=data.map(m=>{const me=m.user_id===currentUser.id,p=latestLocations.get(m.user_id);return `<div class="member"><div><b>${me?"You":m.role==="leader"?"⭐ Leader":"🏍️ Brother"}</b><div class="member-meta">${m.user_id.slice(0,8)} · ${m.role}</div></div><div>${p?"🟢 GPS":"⚪ No GPS"}</div></div>`}).join("");
+}
+async function loadLocations(){
+ const {data,error}=await supabase.from("ride_locations").select("*").eq("ride_id",currentRide.id).order("recorded_at",{ascending:false}).limit(300);
+ if(error){$("liveMessage").textContent="Location read error: "+error.message;return;}
+ latestLocations.clear();for(const p of data||[])if(p.user_id&&!latestLocations.has(p.user_id))latestLocations.set(p.user_id,p);
+ for(const p of latestLocations.values())renderLocation(p);
+ await loadMembers();refreshMemberStatuses();
+}
+function markerIcon(uid,leader){if(uid===currentUser.id)return L.divIcon({className:"",html:'<div class="gm-location-pulse"><div class="gm-location-dot"></div></div>',iconSize:[34,34],iconAnchor:[17,17]});return L.divIcon({className:"",html:`<div class="bike-marker ${leader?"leader-marker":""}">${leader?"⭐":"🏍️"}</div>`,iconSize:[37,37],iconAnchor:[18,18]});}
+function setMyMarker(lat,lng){if(!myMarker)myMarker=L.marker([lat,lng],{icon:markerIcon(currentUser.id,false),zIndexOffset:1000}).addTo(map);else myMarker.setLatLng([lat,lng]);}
+function renderLocation(p){
+ if(!map||p.latitude==null||p.longitude==null)return;
+ const m=memberRows.get(p.user_id),leader=m?.role==="leader";
+ if(p.user_id===currentUser.id){setMyMarker(+p.latitude,+p.longitude);return;}
+ let mk=memberMarkers.get(p.user_id);
+ if(!mk)mk=L.marker([+p.latitude,+p.longitude],{icon:markerIcon(p.user_id,leader)}).addTo(map);else{mk.setLatLng([+p.latitude,+p.longitude]);mk.setIcon(markerIcon(p.user_id,leader));}
+ memberMarkers.set(p.user_id,mk);
+}
+function refreshMemberStatuses(){
+ if(!memberRows.size)return;
+ const now=Date.now(),alerts=[];
+ for(const [uid,m] of memberRows){const p=latestLocations.get(uid);if(!p||uid===currentUser.id)continue;const age=(now-new Date(p.recorded_at||now).getTime())/1000;if(age>90)alerts.push("⚠️ "+(m.role==="leader"?"Leader":"Brother")+" "+uid.slice(0,8)+" has not updated for "+Math.round(age)+"s.");}
+ $("alerts").innerHTML=alerts.length?`<div class="alert">${alerts.join("<br>")}</div>`:'<div class="ok">🟢 Group tracking is healthy.</div>';
+}
+
+async function geocodeDestination(q){
+ try{const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=in&q="+encodeURIComponent(q));const d=await r.json();if(!d?.length)return;const lat=+d[0].lat,lng=+d[0].lon;if(destinationMarker)destinationMarker.remove();destinationMarker=L.marker([lat,lng]).addTo(map).bindPopup("🏁 "+q);map.setView([lat,lng],10);}catch(e){}
+}
+async function buildRoute(fromLat,fromLng,destination){
+ if(!destination)return;const id=++routeRequestId;
+ try{
+  const g=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=in&q="+encodeURIComponent(destination));const places=await g.json();
+  if(id!==routeRequestId||!places?.length)return;const dlat=+places[0].lat,dlng=+places[0].lon;
+  navDestination={lat:dlat,lng:dlng,name:destination};
+  $("navOrigin").textContent="📍 Current location";
+  $("navDestinationName").textContent="🏁 "+destination;
+  if(destinationMarker)destinationMarker.remove();destinationMarker=L.marker([dlat,dlng]).addTo(map).bindPopup("🏁 "+destination);
+  const profile = routeMode==="driving" ? "driving" : "driving";
+   const rr=await fetch(`https://router.project-osrm.org/route/v1/${profile}/${fromLng},${fromLat};${dlng},${dlat}?overview=full&geometries=geojson&steps=true&alternatives=true`);const j=await rr.json();
+  if(id!==routeRequestId||!j.routes?.length)return;const r=j.routes[0];
+  if(routeLine)routeLine.remove();routeLine=L.geoJSON(r.geometry,{style:{color:"#3157ff",weight:7,opacity:.95}}).addTo(map);
+  navSteps=r.legs?.[0]?.steps||[];navStepIndex=0;navTotalDistance=r.distance||0;navTotalDuration=r.duration||0;
+  $("mapDestination").textContent=`🚗 Drive · ${destination} · ${(navTotalDistance/1000).toFixed(0)} km · ~${Math.round(navTotalDuration/60000)} min`;
+  fitRide();
+ }catch(e){$("liveMessage").textContent="Route unavailable; live GPS still works.";}
+}
+function navDist(a,b){const R=6371000,p1=a.lat*Math.PI/180,p2=b.lat*Math.PI/180,dp=(b.lat-a.lat)*Math.PI/180,dl=(b.lng-a.lng)*Math.PI/180,x=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+function updateNav(lat,lng){
+ if(!navSteps.length)return;let best=navStepIndex,bestD=Infinity;
+ for(let i=Math.max(0,navStepIndex-1);i<Math.min(navSteps.length,navStepIndex+4);i++){const x=navSteps[i]?.maneuver?.location;if(!x)continue;const d=navDist({lat,lng},{lat:x[1],lng:x[0]});if(d<bestD){bestD=d;best=i;}}
+ navStepIndex=Math.max(navStepIndex,best);const s=navSteps[navStepIndex],mod=s?.maneuver?.modifier||"",type=s?.maneuver?.type||"";
+ const arrows={left:"←",right:"→",slight_left:"↖",slight_right:"↗",sharp_left:"↙",sharp_right:"↘",straight:"↑",uturn:"↶"};
+ $("navArrow").textContent=type==="arrive"?"✓":type==="roundabout"?"↻":arrows[mod]||"↑";
+ const cleanMod=(mod?mod.replace("_"," "):"straight");
+ const road=s?.name||navDestination?.name||"Road";
+ $("navInstruction").textContent=type==="arrive"?"You have arrived":type==="depart"?"towards "+road:"towards "+road;
+ $("navRoad").textContent=road;
+ $("activeManeuverText").textContent=type==="arrive"?"You have arrived":type==="depart"?"towards "+road:"towards "+road;
+ const next=navSteps[navStepIndex+1],nextMod=next?.maneuver?.modifier||"";
+ $("navNextArrow").textContent=arrows[nextMod]||"→";
+ $("navTurn").textContent=(s?.distance||0)>=1000?(s.distance/1000).toFixed(1)+" km":"in "+Math.round(s?.distance||0)+" m";
+ const rem=navSteps.slice(navStepIndex),dist=rem.reduce((a,x)=>a+(x.distance||0),0),dur=rem.reduce((a,x)=>a+(x.duration||0),0);
+ const etaMin=Math.max(1,Math.round(dur/60));
+ $("navEta").textContent=etaMin+" min";
+ $("modeEta").textContent=etaMin+" min";
+ $("navDistance").textContent=(dist/1000).toFixed(1)+" km";
+ $("navArrival").textContent="Arrive around "+new Date(Date.now()+dur*1000).toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});
+ $("navTop").classList.add("show");$("navBottom").classList.add("show");
+ $("navTop").classList.add("show");$("navBottom").classList.add("show");
+}
+window.startNavigationNow=()=>{
+  $("liveCard").classList.add("fullscreen","navigating");
+  initMap();map.invalidateSize(true);
+  setNavigationMapStyle(true);
+  if(lastPosition){
+    map.setView([lastPosition.lat,lastPosition.lng],17,{animate:true});
+    updateNav(lastPosition.lat,lastPosition.lng);
+  }
+  startGpsAndCenter();
+};
+window.addRouteStop=window.addRouteStop||function(){alert("Add stops: enter another destination from the ride setup.");};
+window.saveRoute=window.saveRoute||function(){alert("Route saved for this ride.");};
+window.stopNavigation=()=>{
+ $("navTop").classList.remove("show");
+ $("navBottom").classList.remove("show");
+};
+window.exitMapFullscreen=()=>{
+ $("liveCard").classList.remove("fullscreen","navigating");
+ setNavigationMapStyle(false);
+ $("navTop").classList.remove("show");
+ $("navBottom").classList.remove("show");
+ setTimeout(()=>map&&map.invalidateSize(true),200);
+};
+window.rideAction=(action)=>{
+  const labels={
+    break:"Break request sent to the ride",
+    sos:"SOS alert sent to your brothers",
+    help:"Emergency help request sent",
+    "left-behind":"Left-behind alert sent",
+    "wrong-route":"Wrong-route alert sent",
+    stop:"Stop ride request sent"
+  };
+  if(action==="sos"){
+    if(confirm("Send SOS alert to all riders?")) alert(labels[action]);
+  }else{
+    alert(labels[action]||"Ride action sent");
+  }
+  const el=$("rideOptions");
+  if(el) el.hidden=true;
+};
+window.startGpsAndCenter=()=>{
+  try{
+    if(typeof startGPS==="function") startGPS();
+    else if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(
+        pos=>{ if(typeof updateMyPosition==="function") updateMyPosition(pos); },
+        ()=>alert("Please allow location access for Biking Brothers."),
+        {enableHighAccuracy:true,maximumAge:3000,timeout:10000}
+      );
+    }
+  }catch(e){}
+  setTimeout(()=>{ if(typeof centerOnMe==="function" && myMarker) centerOnMe(); },900);
+};
+window.setRouteMode=(mode)=>{
+  routeMode=mode==="driving"?"driving":"driving";
+  document.querySelectorAll(".route-mode").forEach(b=>b.classList.remove("active"));
+  $("driveMode").classList.add("active");
+  $("navRoad").textContent="Driving route";
+  if(lastPosition && navDestination){
+    buildRoute(lastPosition.coords.latitude,lastPosition.coords.longitude,navDestination.name);
+  }
+};
+window.centerOnMe=()=>myMarker?map.setView(myMarker.getLatLng(),16,{animate:true}):alert("Start GPS first.");
+window.fitRide=()=>{const ls=[myMarker,destinationMarker,routeLine,...memberMarkers.values()].filter(Boolean);if(ls.length)map.fitBounds(L.featureGroup(ls).getBounds(),{padding:[35,35]});};
+
+window.startGPS=()=>{
+ if(!currentRide){alert("Create or join a ride first.");return;}if(!navigator.geolocation){alert("GPS is not available.");return;}if(gpsWatch!==null)return;
+ $("liveMessage").textContent="Starting high-accuracy GPS…";
+ gpsWatch=navigator.geolocation.watchPosition(async pos=>{
+  const c=pos.coords,lat=c.latitude,lng=c.longitude; $("lat").textContent=lat.toFixed(6);$("lng").textContent=lng.toFixed(6);$("speed").textContent=((c.speed||0)*3.6).toFixed(1)+" km/h";setMyMarker(lat,lng);
+  if($("liveCard").classList.contains("navigating")){
+    map.setView([lat,lng],Math.max(map.getZoom(),16),{animate:true});
+  }
+  $("navOrigin").textContent="📍 Current location";
+  updateNav(lat,lng);
+  if(!lastPosition){
+   map.setView([lat,lng],15,{animate:true});
+   await buildRoute(lat,lng,currentRide.destination);
+   updateNav(lat,lng);
+  }
+  else{const km=haversine(lastPosition.lat,lastPosition.lng,lat,lng);if(km<1)totalDistance+=km;$("distance").textContent=totalDistance.toFixed(1)+" km";}
+  lastPosition={lat,lng};
+  const {error}=await supabase.from("ride_locations").insert({ride_id:currentRide.id,user_id:currentUser.id,latitude:lat,longitude:lng,speed:c.speed||0,heading:c.heading||0,accuracy:c.accuracy||null});
+  $("liveMessage").textContent=error?"Location upload: "+error.message:"GPS sharing live · "+new Date().toLocaleTimeString();refreshMemberStatuses();
+ },err=>$("liveMessage").textContent="GPS error: "+err.message,{enableHighAccuracy:true,maximumAge:3000,timeout:15000});
+};
+window.stopGPS=()=>{if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;$("liveMessage").textContent="GPS sharing stopped.";}};
+function haversine(a,b,c,d){const R=6371,r=x=>x*Math.PI/180,dl=r(c-a),dn=r(d-b),x=Math.sin(dl/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dn/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+window.requestBreak=async()=>{if(!currentRide)return;const {error}=await supabase.from("ride_events").insert({ride_id:currentRide.id,user_id:currentUser.id,event_type:"break_requested",payload:{message:"Break requested"}});$("liveMessage").textContent=error?"Break request: "+error.message:"☕ Break request sent to the ride.";};
+window.requestHelp=async()=>{if(!currentRide)return;const {error}=await supabase.from("ride_events").insert({ride_id:currentRide.id,user_id:currentUser.id,event_type:"help_requested",payload:{message:"Help requested"}});$("liveMessage").textContent=error?"Help request: "+error.message:"🆘 Help request sent to the ride.";};
+window.toggleRideStatus=async()=>{if(!currentRide)return;const next=rideStarted?"planned":"active";const {data,error}=await supabase.from("rides").update({status:next}).eq("id",currentRide.id).select().single();if(error){alert(error.message);return;}currentRide={...currentRide,...data};rideStarted=next==="active";updateRideStatusUI();};
+function updateRideStatusUI(){$("ridePill").textContent=rideStarted?"🟢 Ride active":"Ride not started";$("ridePill").className="pill "+(rideStarted?"green":"");$("rideStatusBtn").textContent=rideStarted?"⏸️ Pause Ride":"▶️ Start Ride";}
+window.endRide=async()=>{if(!currentRide)return;if(!confirm("End this ride for everyone?"))return;const {data,error}=await supabase.from("rides").update({status:"completed"}).eq("id",currentRide.id).select().single();if(error){alert(error.message);return;}currentRide={...currentRide,...data};rideStarted=false;updateRideStatusUI();window.stopGPS();$("liveMessage").textContent="Ride ended. GPS sharing stopped.";};
+window.openRide=()=>{if(!currentUser){$("authCard").scrollIntoView({behavior:"smooth"});alert("Create/login to your rider account first.");return;}$("rideCard").scrollIntoView({behavior:"smooth"});};
+init();
+
+</script>
+</body>
+</html>

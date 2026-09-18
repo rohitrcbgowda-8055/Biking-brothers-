@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#070809">
+<title>Biking Brothers</title>
+<style>
+html,body{margin:0;width:100%;height:100%;background:#070809;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+#loading{height:100%;display:grid;place-items:center;text-align:center;color:#bbb;font-size:18px}
+#error{max-width:90%;line-height:1.5}
+</style>
+</head>
+<body>
+<div id="loading">Loading Biking Brothers…</div>
+
+<script>
+(async function(){
+  /* IMPORTANT:
+     This loads the known-good full Biking Brothers app, NOT main/index.html.
+     Therefore it cannot recursively load itself and the Login screen works.
+  */
+  const SOURCE =
+    "https://raw.githubusercontent.com/rohitrcbgowda-8055/Biking-brothers-/2c1929a195079d66aeaec20724770860d8a57910/index.html";
+
+  try {
+    let response = await fetch(SOURCE, {cache:"no-store"});
+    if (!response.ok) throw new Error("Unable to load the Biking Brothers app.");
+
+    let html = await response.text();
+
+    /* OpenStreetMap instead of Carto */
+    html = html.replace(
+      /https:\/\/\{s\}\.basemaps\.cartocdn\.com\/dark_all\/\{z\}\/\{x\}\/\{y\}\{r\}\.png/g,
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+    );
+    html = html.replace(
+      /&copy; OpenStreetMap contributors &copy; CARTO/g,
+      "&copy; OpenStreetMap contributors"
+    );
+
+    /* Remove stale Leaflet SRI attributes. */
+    html = html.replace(/\s+integrity="[^"]*"/g, "");
+    html = html.replace(/\s+crossorigin=""/g, "");
+
+    /* Full-screen map after Create/Join Ride. */
+    html = html.replace(
+      /#map\{height:430px;/,
+      `#liveCard.fullscreen{position:fixed;inset:0;z-index:5000;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:#000;overflow:hidden;width:100vw;height:100dvh;max-width:none}
+#liveCard.fullscreen>.live-header,#liveCard.fullscreen>.legend,#liveCard.fullscreen>.grid,#liveCard.fullscreen>.actions3,#liveCard.fullscreen>button,#liveCard.fullscreen>#liveMessage,#liveCard.fullscreen>#alerts{display:none!important}
+#liveCard.fullscreen>#mapWrap{position:fixed;inset:0;width:100vw;height:100dvh;margin:0!important}
+#liveCard.fullscreen #map{position:absolute;inset:0;width:100%;height:100%;margin:0;border:0;border-radius:0}
+#liveCard.fullscreen .map-overlay{top:calc(env(safe-area-inset-top) + 12px)}
+#liveCard.fullscreen .map-actions{bottom:calc(env(safe-area-inset-bottom) + 18px)}
+#map{height:430px;`
+    );
+
+    /* Ride options */
+    html = html.replace(
+      /<\/style>/,
+      `#bb-options{position:absolute;z-index:2100;right:14px;bottom:calc(env(safe-area-inset-bottom) + 115px);display:none;flex-direction:column;gap:10px;width:min(290px,calc(100vw - 28px))}
+#bb-options.show{display:flex}
+.bb-option{border:1px solid rgba(255,255,255,.16);border-radius:18px;padding:15px 16px;text-align:left;background:rgba(12,14,17,.96);color:#fff;box-shadow:0 8px 30px rgba(0,0,0,.45);font-size:16px;font-weight:800}
+.bb-option small{display:block;color:#aeb5bd;font-size:12px;font-weight:500;margin-top:4px}
+#bb-options-btn{position:absolute;z-index:2050;right:14px;bottom:calc(env(safe-area-inset-bottom) + 58px);width:56px;height:56px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:#111419;color:#fff;font-size:25px;box-shadow:0 8px 30px rgba(0,0,0,.45)}
+#bb-event-banner{position:absolute;z-index:2200;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 120px);display:none;background:rgba(20,22,25,.97);border:1px solid #3a4048;border-radius:18px;padding:14px 16px;color:#fff;box-shadow:0 8px 30px rgba(0,0,0,.45)}
+#bb-event-banner.show{display:block}
+#bb-event-banner strong{display:block;font-size:17px}
+.bb-event-meta{color:#bfc5cc;font-size:13px;margin-top:5px}
+.bb-event-actions{display:flex;gap:8px;margin-top:10px}
+.bb-event-actions button{flex:1;padding:10px;font-size:14px}
+@media(max-width:560px){
+#liveCard.fullscreen .map-overlay{display:none}
+#liveCard.fullscreen .map-actions{bottom:calc(env(safe-area-inset-bottom) + 135px)}
+#bb-options-btn{bottom:calc(env(safe-area-inset-bottom) + 64px)}
+#bb-options{bottom:calc(env(safe-area-inset-bottom) + 128px)
+}
+}
+</style>`,
+      1
+    );
+
+    /* Add the options button/menu inside the map. */
+    html = html.replace(
+      /    <div class="map-actions">/,
+      `    <button id="bb-options-btn" onclick="toggleBBOptions()" title="Ride options">☰</button>
+    <div id="bb-options">
+      <button class="bb-option" onclick="sendRideEvent('break_requested')">
+        ☕ Need a Break
+        <small>Tell the group to stop at your current location.</small>
+      </button>
+      <button class="bb-option" onclick="sendRideEvent('breakdown')">
+        🔧 Vehicle Breakdown
+        <small>Alert the group and share your current location.</small>
+      </button>
+    </div>
+    <div id="bb-event-banner">
+      <strong id="bb-event-title"></strong>
+      <div class="bb-event-meta" id="bb-event-meta"></div>
+      <div class="bb-event-actions">
+        <button class="secondary" onclick="hideBBEvent()">Dismiss</button>
+        <button class="primary" onclick="focusBBEvent()">Show on map</button>
+      </div>
+    </div>
+    <div class="map-actions">`,
+      1
+    );
+
+    /* Enter full-screen navigation when a ride is created/joined. */
+    html = html.replace(
+      /async function setupRide\(\)\{\s*initMap\(\);/,
+      `async function setupRide(){
+  $("liveCard").classList.add("fullscreen");
+  initMap();`
+    );
+
+    /* Ride-event realtime listener + event functions. */
+    html = html.replace(
+      /let lastPosition=null,totalDistance=0,routeRequestId=0,rideStarted=false;/,
+      `let lastPosition=null,totalDistance=0,routeRequestId=0,rideStarted=false;
+let lastBBEventLocation=null;`
+    );
+
+    html = html.replace(
+      /\.on\("postgres_changes",\{event:"UPDATE",schema:"public",table:"rides",filter:"id=eq\."\+currentRide\.id\},/,
+      `.on("postgres_changes",{event:"*",schema:"public",table:"ride_events",filter:"ride_id=eq."+currentRide.id},
+      payload=>handleRideEvent)
+    .on("postgres_changes",{event:"UPDATE",schema:"public",table:"rides",filter:"id=eq."+currentRide.id},`
+    );
+
+    html = html.replace(
+      /window\.requestBreak=async\(\)=>\{/,
+      `window.toggleBBOptions=()=>{ $("bb-options").classList.toggle("show"); };
+window.hideBBEvent=()=>{ $("bb-event-banner").classList.remove("show"); };
+window.focusBBEvent=()=>{
+  if(lastBBEventLocation&&map) map.setView([lastBBEventLocation.lat,lastBBEventLocation.lng],17,{animate:true});
+  hideBBEvent();
+};
+window.sendRideEvent=async(type)=>{
+  if(!currentRide||!currentUser)return;
+  $("bb-options").classList.remove("show");
+  let lat=null,lng=null;
+  if(myMarker){const p=myMarker.getLatLng();lat=p.lat;lng=p.lng;}
+  const messages={
+    break_requested:"needs a break and has shared their current location.",
+    breakdown:"has a vehicle breakdown and has shared their current location."
+  };
+  const {error}=await supabase.from("ride_events").insert({
+    ride_id:currentRide.id,user_id:currentUser.id,event_type:type,
+    payload:{message:messages[type],latitude:lat,longitude:lng,created_at:new Date().toISOString()}
+  });
+  if(error){alert("Could not send alert: "+error.message);return;}
+  showBBEvent(type==="breakdown"?"🔧 Vehicle breakdown":"☕ Break requested",messages[type],lat,lng,true);
+};
+function showBBEvent(title,message,lat,lng,isMine=false){
+  $("bb-event-title").textContent=title;
+  $("bb-event-meta").textContent=(isMine?"You ":"A rider ")+message+(lat&&lng?" Location shared.":"");
+  lastBBEventLocation=lat&&lng?{lat,lng}:null;
+  $("bb-event-banner").classList.add("show");
+}
+function handleRideEvent(payload){
+  if(payload.eventType==="DELETE")return;
+  const e=payload.new||{};
+  if(!e||!e.event_type)return;
+  const p=e.payload||{};
+  const lat=Number(p.latitude),lng=Number(p.longitude);
+  showBBEvent(
+    e.event_type==="breakdown"?"🔧 Vehicle breakdown":"☕ Break requested",
+    p.message||"A rider sent an alert to the group.",
+    Number.isFinite(lat)&&Number.isFinite(lng)?lat:null,
+    Number.isFinite(lat)&&Number.isFinite(lng)?lng:null,
+    e.user_id===currentUser?.id
+  );
+}
+
+window.requestBreak=async()=>{`
+    );
+
+    if (html.includes("const SOURCE =") || !html.includes("signInWithPassword")) {
+        throw new Error("Safety check failed: the replacement file is not the correct app.");
+    }
+
+    document.getElementById("loading").textContent = "Biking Brothers file ready.";
+    const out = Path("/mnt/data/Biking-Brothers-GitHub-Replacement.html")
+    out.write_text(html, encoding="utf-8")
+    print(out)
+    print(f"File size: {out.stat().st_size:,} bytes")

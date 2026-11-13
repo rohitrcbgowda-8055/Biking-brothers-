@@ -135,7 +135,16 @@ label{font-size:13px;color:#bfc4cb}.muted,.small{color:var(--muted);font-size:13
 <button class="primary" onclick="signUp()">Create account</button>
 <button class="secondary" onclick="signIn()">Login</button>
 </div>
+<button class="secondary" style="width:100%;margin-top:10px" onclick="sendPasswordReset()">Forgot password?</button>
 <p class="muted">If email confirmation is enabled in Supabase, confirm the email before logging in.</p>
+</section>
+
+<section class="card hidden" id="passwordResetCard">
+<h3>🔐 Set a new password</h3>
+<p class="muted" id="passwordResetHelp">Open the password reset link from your email to continue.</p>
+<label>New password</label><input id="newPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters">
+<label>Confirm new password</label><input id="confirmNewPassword" type="password" autocomplete="new-password" placeholder="Re-enter new password">
+<button class="primary" style="width:100%" onclick="saveNewPassword()">Save new password</button>
 </section>
 
 <section class="card hidden" id="rideCard">
@@ -284,6 +293,7 @@ async function init(){
   console.error("Biking Brothers cloud initialization failed:",e);
  }
 }
+let passwordRecoveryMode=false;
 async function applySession(session){
  currentUser=session?.user||null;
  $("authCard").classList.toggle("hidden",!!currentUser);
@@ -292,7 +302,19 @@ async function applySession(session){
  if(currentUser){$("userEmail").textContent=currentUser.email||currentUser.id;$("online").textContent="● Online";}
  else $("online").textContent="● Cloud";
 }
-supabase.auth.onAuthStateChange((_event,session)=>applySession(session));
+supabase.auth.onAuthStateChange((event,session)=>{
+ if(event==="PASSWORD_RECOVERY"){
+  passwordRecoveryMode=true;
+  $("authCard").classList.add("hidden");
+  $("rideCard").classList.add("hidden");
+  $("userBox").classList.add("hidden");
+  $("passwordResetCard").classList.remove("hidden");
+  $("passwordResetHelp").textContent="Enter and confirm your new password.";
+  setStatus("Password reset link verified. Set your new password.");
+ }else{
+  applySession(session);
+ }
+});
 
 async function authWithTimeout(promise,label){
  return await Promise.race([
@@ -324,6 +346,44 @@ window.signIn=async()=>{
   const message=friendlyError(e);
   setStatus("Login failed: "+message,false);
   alert("Login failed: "+message);
+ }
+};
+window.sendPasswordReset=async()=>{
+ const email=$("email").value.trim();
+ if(!email){alert("Enter your account email address first.");$("email").focus();return;}
+ setStatus("Sending password reset email…");
+ try{
+  const {error}=await authWithTimeout(supabase.auth.resetPasswordForEmail(email,{redirectTo:"https://biking-brothers-ride-options.vercel.app"}),"Password reset email");
+  if(error)throw error;
+  setStatus("If an account exists for this email, a password reset link has been sent. Check your inbox and spam folder.");
+  alert("Check your email for the Biking Brothers password reset link. Also check Spam/Junk.");
+ }catch(e){
+  const message=friendlyError(e);
+  setStatus("Password reset failed: "+message,false);
+  alert("Password reset failed: "+message);
+ }
+};
+window.saveNewPassword=async()=>{
+ const password=$("newPassword").value;
+ const confirmPassword=$("confirmNewPassword").value;
+ if(password.length<6){alert("Use a password with at least 6 characters.");return;}
+ if(password!==confirmPassword){alert("The passwords do not match.");return;}
+ setStatus("Updating your password…");
+ try{
+  const {error}=await authWithTimeout(supabase.auth.updateUser({password}),"Password update");
+  if(error)throw error;
+  passwordRecoveryMode=false;
+  $("passwordResetCard").classList.add("hidden");
+  $("newPassword").value="";
+  $("confirmNewPassword").value="";
+  const {data}=await supabase.auth.getSession();
+  await applySession(data.session);
+  setStatus("Password updated successfully. You can now use your new password.");
+  alert("Your Biking Brothers password has been updated.");
+ }catch(e){
+  const message=friendlyError(e);
+  setStatus("Password update failed: "+message,false);
+  alert("Password update failed: "+message);
  }
 };
 window.signOut=async()=>{await supabase.auth.signOut();location.reload();};

@@ -239,7 +239,21 @@ label{font-size:13px;color:#bfc4cb}.muted,.small{color:var(--muted);font-size:13
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
-import {createClient} from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+let createClient;
+try {
+  ({createClient} = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"));
+} catch (primaryCdnError) {
+  try {
+    ({createClient} = await import("https://esm.sh/@supabase/supabase-js@2"));
+  } catch (fallbackCdnError) {
+    const status = document.getElementById("cloudStatus");
+    if (status) {
+      status.textContent = "Cloud library failed to load. Check your connection and reload.";
+      status.style.color = "#ff7777";
+    }
+    throw new Error("Supabase library could not load from either CDN: " + (fallbackCdnError?.message || primaryCdnError?.message || "Unknown error"));
+  }
+}
 
 const SUPABASE_URL="https://zphoummdvvfcmbuudjqb.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_dIcHSjddCytTJ5sUm4jLew_o5kUgQg8";
@@ -257,11 +271,18 @@ function friendlyError(e){return e?.message||String(e)||"Unknown error";}
 
 async function init(){
  try{
-  const {data,error}=await supabase.auth.getSession();
+  const sessionResult = await Promise.race([
+   supabase.auth.getSession(),
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error("Supabase did not respond within 12 seconds. Check the Supabase project status and network access.")),12000))
+  ]);
+  const {data,error}=sessionResult;
   if(error) throw error;
   await applySession(data.session);
   setStatus("Connected to Biking Brothers cloud database.");
- }catch(e){setStatus("Cloud error: "+friendlyError(e),false);}
+ }catch(e){
+  setStatus("Cloud connection failed: "+friendlyError(e),false);
+  console.error("Biking Brothers cloud initialization failed:",e);
+ }
 }
 async function applySession(session){
  currentUser=session?.user||null;

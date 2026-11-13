@@ -527,6 +527,7 @@ async function setupRide(){
  $("navDestinationName").textContent="⌖ "+(currentRide.destination||"Destination");
  rideStarted=currentRide.status==="active";updateRideStatusUI();
  await loadMembers();await loadLocations();setupRealtime();
+ await loadLatestSharedRoute();
  if(latestLocations.has(currentUser.id)){
    const p=latestLocations.get(currentUser.id);
    setMyMarker(+p.latitude,+p.longitude);
@@ -546,7 +547,13 @@ function setupRealtime(){
  .on("postgres_changes",{event:"*",schema:"public",table:"ride_locations",filter:"ride_id=eq."+currentRide.id},handleLocationEvent)
  .on("postgres_changes",{event:"*",schema:"public",table:"ride_members",filter:"ride_id=eq."+currentRide.id},async()=>{await loadMembers();await loadLocations()})
  .on("postgres_changes",{event:"UPDATE",schema:"public",table:"rides",filter:"id=eq."+currentRide.id},p=>{currentRide={...currentRide,...p.new};rideStarted=currentRide.status==="active";updateRideStatusUI()})
- .on("postgres_changes",{event:"*",schema:"public",table:"ride_events",filter:"ride_id=eq."+currentRide.id},p=>{if(p.new?.event_type)$("liveMessage").textContent="🔔 Ride alert: "+(p.new.payload?.message||p.new.event_type);})
+ .on("postgres_changes",{event:"*",schema:"public",table:"ride_events",filter:"ride_id=eq."+currentRide.id},p=>{
+  if(!p.new?.event_type)return;
+  if(p.new.event_type==="shared_route_updated"&&p.new.user_id!==currentUser.id){
+   applySharedRoute(p.new.payload||{});
+   $("liveMessage").textContent="🧭 Group leader updated the route. Your map is now following the shared route.";
+  }else $("liveMessage").textContent="🔔 Ride alert: "+(p.new.payload?.message||p.new.event_type);
+ })
  .subscribe(s=>$("memberStatus").textContent=s==="SUBSCRIBED"?"Realtime connected":"Realtime "+s);
 }
 function handleLocationEvent(p){
@@ -607,7 +614,66 @@ async function buildRoute(fromLat,fromLng,destination){
   navSteps=r.legs?.[0]?.steps||[];navStepIndex=0;navTotalDistance=r.distance||0;navTotalDuration=r.duration||0;
   $("mapDestination").textContent=`🚗 Drive · ${destination} · ${(navTotalDistance/1000).toFixed(0)} km · ~${Math.round(navTotalDuration/60000)} min`;
   fitRide();
+  if(isCurrentRideLeader()) await publishSharedRoute({
+   destination,
+   destinationPoint:{lat:dlat,lng:dlng,name:destination},
+   geometry:r.geometry,
+   steps:navSteps,
+   distance:navTotalDistance,
+   duration:navTotalDuration,
+   updatedAt:new Date().toISOString()
+  });
  }catch(e){$("liveMessage").textContent="Route unavailable; live GPS still works.";}
+}
+function isCurrentRideLeader(){
+ return !!currentUser&&memberRows.get(currentUser.id)?.role==="leader";
+}
+async function publishSharedRoute(routePayload){
+ if(!currentRide||!isCurrentRideLeader())return;
+ const {error}=await supabase.from("ride_events").insert({
+  ride_id:currentRide.id,user_id:currentUser.id,event_type:"shared_route_updated",
+  payload:{...routePayload,message:"Group route updated by leader"}
+ });
+ if(error){
+  $("liveMessage").textContent="Route changed on your map, but sharing failed: "+error.message;
+  console.error("Shared route publish failed",error);
+ }else{
+  $("liveMessage").textContent="🧭 Group route updated and shared with all riders.";
+ }
+}
+function applySharedRoute(payload){
+ if(!payload?.geometry?.coordinates?.length)return;
+ if(routeLine)routeLine.remove();
+ if(window.altRouteLines){window.altRouteLines.forEach(x=>x.remove());window.altRouteLines=[];}
+ routeLine=L.geoJSON(payload.geometry,{style:{color:"#3157ff",weight:7,opacity:.96}}).addTo(map);
+ navSteps=Array.isArray(payload.steps)?payload.steps:[];
+ navStepIndex=0;
+ navTotalDistance=Number(payload.distance)||0;
+ navTotalDuration=Number(payload.duration)||0;
+ if(payload.destinationPoint){
+  navDestination=payload.destinationPoint;
+  if(destinationMarker)destinationMarker.remove();
+  destinationMarker=L.marker([navDestination.lat,navDestination.lng]).addTo(map).bindPopup("🏁 "+(payload.destination||navDestination.name||"Destination"));
+ }
+ if(payload.destination){
+  currentRide.destination=payload.destination;
+  $("destination").value=payload.destination;
+  $("navDestinationName").textContent="🏁 "+payload.destination;
+  $("mapDestination").textContent="🧭 Shared group route · "+payload.destination+" · "+(navTotalDistance/1000).toFixed(0)+" km";
+ }
+ fitRide();
+ if(lastPosition)updateNav(lastPosition.lat,lastPosition.lng);
+}
+async function loadLatestSharedRoute(){
+ if(!currentRide)return;
+ const {data,error}=await supabase.from("ride_events").select("user_id,payload,created_at")
+  .eq("ride_id",currentRide.id).eq("event_type","shared_route_updated")
+  .order("created_at",{ascending:false}).limit(1).maybeSingle();
+ if(error){console.warn("Could not load latest shared route",error);return;}
+ if(data?.payload?.geometry?.coordinates?.length){
+  applySharedRoute(data.payload);
+  $("liveMessage").textContent="Loaded the group's latest shared route.";
+ }
 }
 function maneuverLabel(step){
  const m=step?.maneuver||{},type=m.type||"",mod=(m.modifier||"").replace(/_/g," ");
@@ -669,16 +735,20 @@ window.startNavigationNow=()=>{
   }
   startGpsAndCenter();
 };
-window.addRouteStop=()=>{
+window.addRouteStop=async()=>{
  if(!currentRide){alert("Join or create a ride first.");return;}
- const stop=prompt("Enter a stop or waypoint in India:");
+ if(!isCurrentRideLeader()){alert("Only the ride leader can change the shared group route.");return;}
+ const stop=prompt("Enter the stop or waypoint to add (India):");
  if(!stop||!stop.trim())return;
- const destination=currentRide.destination||"";
- currentRide.destination=destination?destination+" via "+stop.trim():stop.trim();
- $("destination").value=currentRide.destination;
- $("navDestinationName").textContent="🏁 "+currentRide.destination;
- if(lastPosition)buildRoute(lastPosition.lat,lastPosition.lng,currentRide.destination);
- $("liveMessage").textContent="Added waypoint: "+stop.trim();
+ const destination=(currentRide.destination||"").trim();
+ const updatedDestination=destination?destination+" via "+stop.trim():stop.trim();
+ const {data,error}=await supabase.from("rides").update({destination:updatedDestination}).eq("id",currentRide.id).select().single();
+ if(error){alert("Could not update group destination: "+error.message);return;}
+ currentRide={...currentRide,...data};
+ $("destination").value=updatedDestination;
+ $("navDestinationName").textContent="🏁 "+updatedDestination;
+ if(lastPosition)await buildRoute(lastPosition.lat,lastPosition.lng,updatedDestination);
+ else $("liveMessage").textContent="Waypoint saved. Start GPS to calculate and share the group route.";
 };
 window.saveRoute=()=>{
  if(!currentRide||!navDestination){alert("A route must be loaded before saving.");return;}

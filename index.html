@@ -97,6 +97,29 @@ label{font-size:13px;color:#bfc4cb}.muted,.small{color:var(--muted);font-size:13
 .fullscreen #mapWrap{height:100%;width:100%}
 .fullscreen #map{height:100%;width:100%}
 @media(max-width:560px){.grid{grid-template-columns:1fr 1fr}.actions3{grid-template-columns:1fr}.hero h2{font-size:29px}}
+/* Full-screen ride workspace: map-first, phone-safe, Google Maps-inspired */
+body.ride-fullscreen{overflow:hidden}
+#liveCard.fullscreen{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;max-width:none!important;overflow:hidden!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;z-index:4000!important;background:#e8eaed!important}
+#liveCard.fullscreen #mapWrap{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;z-index:1!important}
+#liveCard.fullscreen #map{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;border:0!important;border-radius:0!important}
+#liveCard.fullscreen .nav-top{display:block;position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:12px;right:12px;z-index:1500}
+#liveCard.fullscreen .nav-bottom{display:flex;position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);z-index:1500;max-height:36vh;overflow:auto}
+#liveCard.fullscreen .map-actions{z-index:1600;right:12px;bottom:calc(env(safe-area-inset-bottom) + 175px);gap:7px}
+#liveCard.fullscreen .map-actions .map-btn{width:46px;height:46px;border-radius:50%;box-shadow:0 2px 8px #0005}
+#liveCard.fullscreen .map-overlay,#liveCard.fullscreen .live-head,#liveCard.fullscreen .grid,#liveCard.fullscreen .actions3,#liveCard.fullscreen>.secondary,#liveCard.fullscreen>.danger,#liveCard.fullscreen>.notice,#liveCard.fullscreen>#mapWrap~*,#liveCard.fullscreen .report-btn,#liveCard.fullscreen .route-mode-card,#liveCard.fullscreen .nav-fab-row{display:none!important}
+#liveCard.fullscreen .gm-route-card{border-radius:18px;padding:11px 14px}
+#liveCard.fullscreen .gm-route-text{font-size:15px}
+#liveCard.fullscreen .gm-route-summary{padding:8px 4px}
+#liveCard.fullscreen .gm-sheet-actions button{padding:11px 14px}
+#liveCard.fullscreen .active-maneuver{border-radius:15px;margin-bottom:8px}
+#liveCard.fullscreen .maneuver-main{padding:15px 16px;font-size:21px}
+#liveCard.fullscreen .maneuver-main #navArrow{font-size:38px}
+#liveCard.fullscreen.navigating .nav-bottom{min-height:132px;max-height:25vh}
+#liveCard.fullscreen.navigating .map-actions{bottom:calc(env(safe-area-inset-bottom) + 150px)}
+#liveCard.fullscreen .leaflet-control-zoom{margin-top:calc(env(safe-area-inset-top) + 90px)!important}
+#liveCard.fullscreen .leaflet-control-attribution{font-size:9px}
+#navTurnDistance{font-size:13px;opacity:.9;font-weight:600}
+
 </style>
 <style>
 #liveCard.navigating .nav-top{top:calc(env(safe-area-inset-top) + 12px);left:12px;right:12px}
@@ -167,7 +190,7 @@ label{font-size:13px;color:#bfc4cb}.muted,.small{color:var(--muted);font-size:13
 <div class="nav-top" id="navTop">
   <div id="activeManeuver" class="active-maneuver">
     <div class="maneuver-main"><span id="navArrow">↑</span><span id="activeManeuverText">towards your next road</span></div>
-    <div class="maneuver-then">Then <span id="navNextArrow">→</span></div>
+    <div class="maneuver-then"><span id="navTurnDistance">Continue</span> · Then <span id="navNextArrow">→</span></div>
   </div>
   <div class="gm-route-card">
     <div class="gm-route-row">
@@ -467,7 +490,8 @@ async function setupRide(){
  } else if(currentRide.destination){
    await geocodeDestination(currentRide.destination);
  }
- setTimeout(()=>startGPS(),250);
+ enterRideFullscreen();
+ setTimeout(()=>startGPS(),350);
 }
 window.addEventListener("resize",()=>map&&map.invalidateSize(true));
 
@@ -540,34 +564,60 @@ async function buildRoute(fromLat,fromLng,destination){
   fitRide();
  }catch(e){$("liveMessage").textContent="Route unavailable; live GPS still works.";}
 }
+function maneuverLabel(step){
+ const m=step?.maneuver||{},type=m.type||"",mod=(m.modifier||"").replace(/_/g," ");
+ const road=step?.name||"the road";
+ if(type==="arrive")return "You have arrived";
+ if(type==="depart")return "Head towards "+road;
+ if(type==="roundabout")return "Enter the roundabout";
+ if(type==="rotary")return "Enter the rotary";
+ if(type==="merge")return "Merge "+(mod||"onto")+" "+road;
+ if(type==="on ramp")return "Take the ramp";
+ if(type==="off ramp")return "Take the exit";
+ if(type==="fork")return "Keep "+(mod||"straight")+" at the fork";
+ if(type==="end of road")return "At the end of the road, turn "+(mod||"ahead");
+ if(type==="turn"||type==="continue"||type==="new name"||type==="notification")return (type==="continue"?"Continue": "Turn "+(mod||"ahead"))+" onto "+road;
+ if(type==="roundabout turn")return "At the roundabout, take the exit";
+ return (mod?("Turn "+mod+" onto "):"Continue on ")+road;
+}
+function enterRideFullscreen(){
+ const card=$("liveCard");
+ card.classList.add("fullscreen");
+ document.body.classList.add("ride-fullscreen");
+ $("navTop").classList.add("show");
+ $("navBottom").classList.add("show");
+ setTimeout(()=>{if(map)map.invalidateSize(true);},250);
+}
 function navDist(a,b){const R=6371000,p1=a.lat*Math.PI/180,p2=b.lat*Math.PI/180,dp=(b.lat-a.lat)*Math.PI/180,dl=(b.lng-a.lng)*Math.PI/180,x=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
 function updateNav(lat,lng){
- if(!navSteps.length)return;let best=navStepIndex,bestD=Infinity;
- for(let i=Math.max(0,navStepIndex-1);i<Math.min(navSteps.length,navStepIndex+4);i++){const x=navSteps[i]?.maneuver?.location;if(!x)continue;const d=navDist({lat,lng},{lat:x[1],lng:x[0]});if(d<bestD){bestD=d;best=i;}}
- navStepIndex=Math.max(navStepIndex,best);const s=navSteps[navStepIndex],mod=s?.maneuver?.modifier||"",type=s?.maneuver?.type||"";
- const arrows={left:"←",right:"→",slight_left:"↖",slight_right:"↗",sharp_left:"↙",sharp_right:"↘",straight:"↑",uturn:"↶"};
- $("navArrow").textContent=type==="arrive"?"✓":type==="roundabout"?"↻":arrows[mod]||"↑";
- const cleanMod=(mod?mod.replace("_"," "):"straight");
- const road=s?.name||navDestination?.name||"Road";
- $("navInstruction").textContent=type==="arrive"?"You have arrived":type==="depart"?"towards "+road:"towards "+road;
- $("navRoad").textContent=road;
- $("activeManeuverText").textContent=type==="arrive"?"You have arrived":type==="depart"?"towards "+road:"towards "+road;
- const next=navSteps[navStepIndex+1],nextMod=next?.maneuver?.modifier||"";
- $("navNextArrow").textContent=arrows[nextMod]||"→";
- $("navTurn").textContent=(s?.distance||0)>=1000?(s.distance/1000).toFixed(1)+" km":"in "+Math.round(s?.distance||0)+" m";
+ if(!navSteps.length)return;
+ let best=navStepIndex,bestD=Infinity;
+ for(let i=Math.max(0,navStepIndex-1);i<Math.min(navSteps.length,navStepIndex+5);i++){
+  const x=navSteps[i]?.maneuver?.location;if(!x)continue;
+  const d=navDist({lat,lng},{lat:x[1],lng:x[0]});if(d<bestD){bestD=d;best=i;}
+ }
+ navStepIndex=Math.max(0,Math.min(navSteps.length-1,best));
+ const s=navSteps[navStepIndex],mod=s?.maneuver?.modifier||"",type=s?.maneuver?.type||"";
+ const arrows={left:"↰",right:"↱",slight_left:"↖",slight_right:"↗",sharp_left:"↶",sharp_right:"↷",straight:"↑",uturn:"↶"};
+ $("navArrow").textContent=type==="arrive"?"✓":type==="roundabout"||type==="rotary"?"⟳":arrows[mod]||"↑";
+ $("activeManeuverText").textContent=maneuverLabel(s);
+ const next=navSteps[navStepIndex+1];
+ $("navNextArrow").textContent=arrows[next?.maneuver?.modifier||""]||"↑";
+ const stepM=s?.distance||0;
+ $("navTurnDistance").textContent=stepM>=1000?(stepM/1000).toFixed(1)+" km":Math.max(0,Math.round(stepM))+" m";
  const rem=navSteps.slice(navStepIndex),dist=rem.reduce((a,x)=>a+(x.distance||0),0),dur=rem.reduce((a,x)=>a+(x.duration||0),0);
  const etaMin=Math.max(1,Math.round(dur/60));
  $("navEta").textContent=etaMin+" min";
  $("modeEta").textContent=etaMin+" min";
- $("navDistance").textContent=(dist/1000).toFixed(1)+" km";
+ $("navDistance").textContent=(dist/1000).toFixed(1)+" km remaining";
  $("navArrival").textContent="Arrive around "+new Date(Date.now()+dur*1000).toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});
- $("navTop").classList.add("show");$("navBottom").classList.add("show");
  $("navTop").classList.add("show");$("navBottom").classList.add("show");
 }
 window.startNavigationNow=()=>{
-  $("liveCard").classList.add("fullscreen","navigating");
+  enterRideFullscreen();
+  $("liveCard").classList.add("navigating");
   initMap();map.invalidateSize(true);
-  setNavigationMapStyle(true);
+  setNavigationMapStyle(false);
   if(lastPosition){
     map.setView([lastPosition.lat,lastPosition.lng],17,{animate:true});
     updateNav(lastPosition.lat,lastPosition.lng);
@@ -582,6 +632,7 @@ window.stopNavigation=()=>{
 };
 window.exitMapFullscreen=()=>{
  $("liveCard").classList.remove("fullscreen","navigating");
+ document.body.classList.remove("ride-fullscreen");
  setNavigationMapStyle(false);
  $("navTop").classList.remove("show");
  $("navBottom").classList.remove("show");

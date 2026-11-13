@@ -294,23 +294,37 @@ async function applySession(session){
 }
 supabase.auth.onAuthStateChange((_event,session)=>applySession(session));
 
+async function authWithTimeout(promise,label){
+ return await Promise.race([
+  promise,
+  new Promise((_,reject)=>setTimeout(()=>reject(new Error(label+" timed out after 15 seconds. The Supabase Auth service did not respond.")),15000))
+ ]);
+}
 window.signUp=async()=>{
  const email=$("email").value.trim(),password=$("password").value;
  if(!email||password.length<6){alert("Enter a valid email and a password of at least 6 characters.");return;}
- $("cloudStatus").textContent="Creating account…";
- const {data,error}=await supabase.auth.signUp({email,password});
- if(error){alert("Create account: "+error.message);return;}
- if(data.session) alert("Account created and logged in.");
- else alert("Account created. Check your email confirmation, then use Login.");
+ setStatus("Creating account…");
+ try{
+  const {data,error}=await authWithTimeout(supabase.auth.signUp({email,password}),"Account creation");
+  if(error)throw error;
+  if(data.session){await applySession(data.session);setStatus("Account created and logged in.");}
+  else setStatus("Account created. Check your email confirmation, then log in.");
+ }catch(e){setStatus("Account creation failed: "+friendlyError(e),false);alert("Create account: "+friendlyError(e));}
 };
 window.signIn=async()=>{
  const email=$("email").value.trim(),password=$("password").value;
  if(!email||!password){alert("Enter your email and password.");return;}
- $("cloudStatus").textContent="Logging in…";
- const {data,error}=await supabase.auth.signInWithPassword({email,password});
- if(error){alert("Login failed: "+error.message);return;}
- await applySession(data.session);
- $("cloudStatus").textContent="Login successful.";
+ setStatus("Logging in…");
+ try{
+  const {data,error}=await authWithTimeout(supabase.auth.signInWithPassword({email,password}),"Login");
+  if(error)throw error;
+  await applySession(data.session);
+  setStatus("Login successful.");
+ }catch(e){
+  const message=friendlyError(e);
+  setStatus("Login failed: "+message,false);
+  alert("Login failed: "+message);
+ }
 };
 window.signOut=async()=>{await supabase.auth.signOut();location.reload();};
 

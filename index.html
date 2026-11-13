@@ -527,13 +527,13 @@ async function setupRide(){
  $("navDestinationName").textContent="⌖ "+(currentRide.destination||"Destination");
  rideStarted=currentRide.status==="active";updateRideStatusUI();
  await loadMembers();await loadLocations();setupRealtime();
- await loadLatestSharedRoute();
+ const hasSharedRoute=await loadLatestSharedRoute();
  if(latestLocations.has(currentUser.id)){
    const p=latestLocations.get(currentUser.id);
    setMyMarker(+p.latitude,+p.longitude);
-   map.setView([+p.latitude,+p.longitude],14);
-   await buildRoute(+p.latitude,+p.longitude,currentRide.destination);
- } else if(currentRide.destination){
+   if(!hasSharedRoute)map.setView([+p.latitude,+p.longitude],14);
+   if(isCurrentRideLeader()&&!hasSharedRoute)await buildRoute(+p.latitude,+p.longitude,currentRide.destination);
+ } else if(currentRide.destination&&!hasSharedRoute){
    await geocodeDestination(currentRide.destination);
  }
  enterRideFullscreen();
@@ -665,15 +665,17 @@ function applySharedRoute(payload){
  if(lastPosition)updateNav(lastPosition.lat,lastPosition.lng);
 }
 async function loadLatestSharedRoute(){
- if(!currentRide)return;
+ if(!currentRide)return false;
  const {data,error}=await supabase.from("ride_events").select("user_id,payload,created_at")
   .eq("ride_id",currentRide.id).eq("event_type","shared_route_updated")
   .order("created_at",{ascending:false}).limit(1).maybeSingle();
- if(error){console.warn("Could not load latest shared route",error);return;}
+ if(error){console.warn("Could not load latest shared route",error);return false;}
  if(data?.payload?.geometry?.coordinates?.length){
   applySharedRoute(data.payload);
   $("liveMessage").textContent="Loaded the group's latest shared route.";
+  return true;
  }
+ return false;
 }
 function maneuverLabel(step){
  const m=step?.maneuver||{},type=m.type||"",mod=(m.modifier||"").replace(/_/g," ");

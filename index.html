@@ -118,6 +118,51 @@ body.ride-fullscreen{overflow:hidden}
 #liveCard.fullscreen.navigating .map-actions{bottom:calc(env(safe-area-inset-bottom) + 150px)}
 #liveCard.fullscreen .leaflet-control-zoom{margin-top:calc(env(safe-area-inset-top) + 90px)!important}
 #liveCard.fullscreen .leaflet-control-attribution{font-size:9px}
+/* Final mobile control layout: no stacked/overlapping floating elements */
+#liveCard.fullscreen .map-actions{
+ position:absolute!important;top:calc(env(safe-area-inset-top) + 165px)!important;
+ right:12px!important;bottom:auto!important;left:auto!important;
+ display:flex!important;flex-direction:column!important;align-items:center!important;
+ gap:9px!important;height:auto!important;z-index:1800!important;
+}
+#liveCard.fullscreen .map-actions .map-btn{
+ display:grid!important;place-items:center!important;width:46px!important;height:46px!important;
+ min-width:46px!important;padding:0!important;border-radius:50%!important;
+ background:rgba(24,28,34,.96)!important;color:#fff!important;font-size:18px!important;
+ border:1px solid rgba(255,255,255,.22)!important;box-shadow:0 2px 10px #0006!important;
+}
+#liveCard.fullscreen .map-actions .gps-map-btn{background:#1677ff!important;border-color:#8fc1ff!important}
+#liveCard.fullscreen .map-actions .sos-map-btn{background:#c62828!important;border-color:#ff8a80!important}
+#liveCard.fullscreen .gps-status{position:static!important;order:-1!important;display:block!important;
+ white-space:nowrap!important;background:#17212b!important;color:#9bcaff!important;
+ border:1px solid #42627d!important;border-radius:18px!important;padding:7px 9px!important;
+ font-size:10px!important;box-shadow:0 2px 8px #0005!important}
+#liveCard.fullscreen .map-actions .gps-label{display:none!important}
+#liveCard.fullscreen .nav-fab-row,#liveCard.fullscreen .route-mode-card{display:none!important}
+#liveCard.fullscreen .ride-options{
+ position:absolute!important;right:56px!important;top:115px!important;bottom:auto!important;
+ z-index:1900!important;min-width:185px!important;max-width:calc(100vw - 100px)!important;
+}
+#liveCard.fullscreen .nav-top{z-index:1700!important;pointer-events:none!important}
+#liveCard.fullscreen .nav-top>*{pointer-events:auto!important}
+#liveCard.fullscreen .nav-bottom{z-index:1700!important}
+#liveCard.fullscreen .gm-active-actions{top:12px!important;right:12px!important}
+#liveCard.fullscreen .gm-active-actions .nav-sparkle{width:48px!important;height:48px!important}
+#liveCard.fullscreen .gm-active-actions .nav-exit{height:48px!important;padding:0 16px!important}
+#liveCard.fullscreen .gm-route-summary{gap:10px!important;flex-wrap:wrap!important}
+#liveCard.fullscreen .gm-big-eta{font-size:29px!important;white-space:nowrap!important}
+#liveCard.fullscreen .gm-summary-text{min-width:0!important;flex:1!important;padding-right:0!important}
+#liveCard.fullscreen .gm-sheet-actions{flex-wrap:wrap!important}
+#liveCard.fullscreen .gm-sheet-actions button{flex:1 1 105px!important;min-width:0!important}
+#liveCard.fullscreen .active-maneuver{max-height:150px!important}
+#liveCard.fullscreen .maneuver-main{font-size:20px!important;padding:13px 15px!important}
+#liveCard.fullscreen .maneuver-then{font-size:14px!important;padding:9px 15px!important}
+@media(max-height:700px){
+ #liveCard.fullscreen .map-actions{top:calc(env(safe-area-inset-top) + 135px)!important;gap:6px!important}
+ #liveCard.fullscreen .map-actions .map-btn{width:40px!important;height:40px!important;min-width:40px!important}
+ #liveCard.fullscreen .nav-bottom{max-height:31vh!important}
+}
+
 #navTurnDistance{font-size:13px;opacity:.9;font-weight:600}
 
 </style>
@@ -209,7 +254,7 @@ body.ride-fullscreen{overflow:hidden}
   <div class="gm-sheet-head overview-only">
     <strong>Drive</strong>
     <div class="gm-sheet-icons">
-      <button onclick="alert('Route options')">☷</button>
+      <button onclick="toggleRideOptions()">☷</button>
       <button onclick="saveRoute()">🔖</button>
       <button onclick="exitMapFullscreen()">✕</button>
     </div>
@@ -224,7 +269,7 @@ body.ride-fullscreen{overflow:hidden}
     <div class="gm-summary-text"><strong id="navArrival">Route ready</strong><span id="navDistance">— km</span></div>
   </div>
   <div class="gm-active-actions">
-    <button class="nav-sparkle" onclick="alert('Navigation assistant')">✦</button>
+    <button class="nav-sparkle" onclick="speakNextInstruction()">✦</button>
     <button class="nav-exit" onclick="exitMapFullscreen()">Exit</button>
   </div>
   <div class="gm-sheet-actions overview-only">
@@ -234,12 +279,12 @@ body.ride-fullscreen{overflow:hidden}
   </div>
 </div>
 <div class="map-overlay"><div class="map-chip"><strong id="mapRideName">Biking Brothers</strong><span id="mapDestination">Destination —</span></div><div class="map-chip"><strong id="mapRiderCount">1 rider</strong><span id="mapLeader">Leader —</span></div></div>
-<button class="report-btn" onclick="alert('Report an issue')">⚠ Report</button>
+<button class="report-btn" onclick="reportRideIssue()">⚠ Report</button>
 <div class="map-actions">
 <button class="map-btn gps-map-btn" onclick="startGpsAndCenter()" title="My GPS location">📍<span class="gps-label">GPS</span></button>
 <button class="map-btn" onclick="fitRide()" title="Fit route">⛶</button>
 <button class="map-btn" onclick="requestBreak()" title="Break">☕</button>
-<button class="map-btn sos-map-btn" onclick="requestHelp()" title="SOS">🆘</button>
+<button class="map-btn sos-map-btn" onclick="requestSOS()" title="SOS">🆘</button>
 <button class="map-btn" onclick="toggleRideOptions()" title="More options">⋮</button>
 <button class="map-btn" onclick="exitMapFullscreen()" title="Exit full screen">✕</button>
 <div id="gpsStatus" class="gps-status">● GPS</div>
@@ -252,8 +297,8 @@ body.ride-fullscreen{overflow:hidden}
 </div>
 <div id="rideOptions" class="ride-options" hidden>
   <button onclick="requestHelp();toggleRideOptions()">🆘 Emergency Help</button>
-  <button onclick="alert('Left-behind alert sent to the ride') ;toggleRideOptions()">👥 Left Behind</button>
-  <button onclick="alert('Wrong-route alert sent to the ride') ;toggleRideOptions()">↪️ Wrong Route</button>
+  <button onclick="sendRideAlert('left_behind','A rider may have been left behind');toggleRideOptions()">👥 Left Behind</button>
+  <button onclick="sendRideAlert('wrong_route','A rider may be off route');toggleRideOptions()">↪️ Wrong Route</button>
   <button onclick="toggleRideStatus();toggleRideOptions()">▶️ Start / Pause Ride</button>
 </div>
 </div>
@@ -624,8 +669,53 @@ window.startNavigationNow=()=>{
   }
   startGpsAndCenter();
 };
-window.addRouteStop=window.addRouteStop||function(){alert("Add stops: enter another destination from the ride setup.");};
-window.saveRoute=window.saveRoute||function(){alert("Route saved for this ride.");};
+window.addRouteStop=()=>{
+ if(!currentRide){alert("Join or create a ride first.");return;}
+ const stop=prompt("Enter a stop or waypoint in India:");
+ if(!stop||!stop.trim())return;
+ const destination=currentRide.destination||"";
+ currentRide.destination=destination?destination+" via "+stop.trim():stop.trim();
+ $("destination").value=currentRide.destination;
+ $("navDestinationName").textContent="🏁 "+currentRide.destination;
+ if(lastPosition)buildRoute(lastPosition.lat,lastPosition.lng,currentRide.destination);
+ $("liveMessage").textContent="Added waypoint: "+stop.trim();
+};
+window.saveRoute=()=>{
+ if(!currentRide||!navDestination){alert("A route must be loaded before saving.");return;}
+ try{
+  const saved={rideId:currentRide.id,name:currentRide.name,destination:currentRide.destination,
+   destinationPoint:navDestination,savedAt:new Date().toISOString()};
+  const key="bb-saved-routes";
+  const existing=JSON.parse(localStorage.getItem(key)||"[]");
+  existing.unshift(saved);localStorage.setItem(key,JSON.stringify(existing.slice(0,20)));
+  $("liveMessage").textContent="Route saved on this device.";
+ }catch(e){$("liveMessage").textContent="Could not save route on this device: "+e.message;}
+};
+window.speakNextInstruction=()=>{
+ const text=$("activeManeuverText")?.textContent;
+ if(!text){$("liveMessage").textContent="Route instructions are not ready yet.";return;}
+ if(!("speechSynthesis" in window)){alert("Voice guidance is not supported by this browser.");return;}
+ window.speechSynthesis.cancel();
+ const utterance=new SpeechSynthesisUtterance(text);
+ utterance.lang="en-IN";utterance.rate=0.92;window.speechSynthesis.speak(utterance);
+};
+window.sendRideAlert=async(type,message)=>{
+ if(!currentRide||!currentUser){alert("Join a ride before sending an alert.");return;}
+ const {error}=await supabase.from("ride_events").insert({
+  ride_id:currentRide.id,user_id:currentUser.id,event_type:type,payload:{message}
+ });
+ $("liveMessage").textContent=error?"Alert failed: "+error.message:"Alert sent to ride members.";
+};
+window.reportRideIssue=async()=>{
+ const issue=prompt("Describe the issue for this ride:");
+ if(!issue||!issue.trim())return;
+ await sendRideAlert("issue_reported",issue.trim());
+};
+window.requestSOS=async()=>{
+ if(!currentRide||!currentUser){alert("Join a ride before sending SOS.");return;}
+ if(!confirm("Send an emergency SOS alert to all riders?"))return;
+ await sendRideAlert("sos_requested","Emergency SOS requested. Contact the rider immediately.");
+};
 window.stopNavigation=()=>{
  $("navTop").classList.remove("show");
  $("navBottom").classList.remove("show");
@@ -673,26 +763,29 @@ window.startGpsAndCenter=()=>{
   setTimeout(()=>{ if(typeof centerOnMe==="function" && myMarker) centerOnMe(); },900);
 };
 window.setRouteMode=(mode)=>{
-  routeMode=mode==="driving"?"driving":"driving";
-  document.querySelectorAll(".route-mode").forEach(b=>b.classList.remove("active"));
+  routeMode="driving";
+  document.querySelectorAll(".gm-mode").forEach(b=>b.classList.remove("active"));
   $("driveMode").classList.add("active");
-  $("navRoad").textContent="Driving route";
-  if(lastPosition && navDestination){
-    buildRoute(lastPosition.lat,lastPosition.lng,navDestination.name);
-  }
+  if(lastPosition && navDestination) buildRoute(lastPosition.lat,lastPosition.lng,navDestination.name);
+  $("liveMessage").textContent="Driving route selected. Motorcycle-specific routing is not yet enabled.";
 };
 window.centerOnMe=()=>{
   if(myMarker){map.setView(myMarker.getLatLng(),16,{animate:true});return;}
   if(currentRide){startGPS();return;}
   alert("Create or join a ride first.");
 };
-window.fitRide=()=>{const ls=[myMarker,destinationMarker,routeLine,...memberMarkers.values()].filter(Boolean);if(ls.length)map.fitBounds(L.featureGroup(ls).getBounds(),{padding:[35,35]});};
+window.fitRide=()=>{
+ const ls=[myMarker,destinationMarker,routeLine,...memberMarkers.values()].filter(Boolean);
+ if(!ls.length){$("liveMessage").textContent="No rider or route position is available yet.";return;}
+ if(ls.length===1){const p=ls[0].getLatLng?.();if(p)map.setView(p,15,{animate:true});return;}
+ map.fitBounds(L.featureGroup(ls).getBounds(),{padding:[55,55],maxZoom:16});
+};
 
 window.startGPS=()=>{
  if(!currentRide){alert("Create or join a ride first.");return;}if(!navigator.geolocation){alert("GPS is not available.");return;}if(gpsWatch!==null)return;
  $("liveMessage").textContent="Starting high-accuracy GPS…";
  gpsWatch=navigator.geolocation.watchPosition(async pos=>{
-  const c=pos.coords,lat=c.latitude,lng=c.longitude; $("lat").textContent=lat.toFixed(6);$("lng").textContent=lng.toFixed(6);$("speed").textContent=((c.speed||0)*3.6).toFixed(1)+" km/h";setMyMarker(lat,lng);
+  const c=pos.coords,lat=c.latitude,lng=c.longitude; const gpsBadge=$("gpsStatus");if(gpsBadge)gpsBadge.textContent="● GPS ON"; $("lat").textContent=lat.toFixed(6);$("lng").textContent=lng.toFixed(6);$("speed").textContent=((c.speed||0)*3.6).toFixed(1)+" km/h";setMyMarker(lat,lng);
   if($("liveCard").classList.contains("navigating")){
     map.setView([lat,lng],Math.max(map.getZoom(),16),{animate:true});
   }
@@ -709,10 +802,10 @@ window.startGPS=()=>{
   $("liveMessage").textContent=error?"Location upload: "+error.message:"GPS sharing live · "+new Date().toLocaleTimeString();refreshMemberStatuses();
  },err=>{
    $("liveMessage").textContent="GPS error: "+err.message;
-   const gs=$("gpsStatus"); if(gs) gs.textContent="● GPS OFF";
+   gpsWatch=null;const gs=$("gpsStatus"); if(gs) gs.textContent="● GPS OFF";
   },{enableHighAccuracy:true,maximumAge:3000,timeout:15000});
 };
-window.stopGPS=()=>{if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;$("liveMessage").textContent="GPS sharing stopped.";}};
+window.stopGPS=()=>{if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;}const gs=$("gpsStatus");if(gs)gs.textContent="● GPS OFF";$("liveMessage").textContent="GPS sharing stopped.";};
 function haversine(a,b,c,d){const R=6371,r=x=>x*Math.PI/180,dl=r(c-a),dn=r(d-b),x=Math.sin(dl/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dn/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
 window.requestBreak=async()=>{if(!currentRide)return;const {error}=await supabase.from("ride_events").insert({ride_id:currentRide.id,user_id:currentUser.id,event_type:"break_requested",payload:{message:"Break requested"}});$("liveMessage").textContent=error?"Break request: "+error.message:"☕ Break request sent to the ride.";};
 window.requestHelp=async()=>{if(!currentRide)return;const {error}=await supabase.from("ride_events").insert({ride_id:currentRide.id,user_id:currentUser.id,event_type:"help_requested",payload:{message:"Help requested"}});$("liveMessage").textContent=error?"Help request: "+error.message:"🆘 Help request sent to the ride.";};
